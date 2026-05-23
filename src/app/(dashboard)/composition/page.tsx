@@ -3,7 +3,6 @@
 import { IconDownload } from '@tabler/icons-react'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
-import MiniLineChart from '@/components/detail/MiniLineChart'
 
 // Body path in 0–200 space (x: 32–168, y: 12–346)
 const BODY_PATH = `M 100 12 C 88 12 78 22 78 34 C 78 46 88 56 100 56 C 112 56 122 46 122 34 C 122 22 112 12 100 12 Z M 72 62 C 58 64 46 72 42 86 L 32 130 C 30 140 36 150 46 152 L 52 154 L 48 210 L 40 320 C 38 332 44 342 54 344 L 68 346 C 76 346 82 340 84 332 L 96 258 L 104 258 L 116 332 C 118 340 124 346 132 346 L 146 344 C 156 342 162 332 160 320 L 152 210 L 148 154 L 154 152 C 164 150 170 140 168 130 L 158 86 C 154 72 142 64 128 62 C 120 60 112 58 100 58 C 88 58 80 60 72 62 Z`
@@ -83,13 +82,105 @@ function StatCard({ label, value, unit, sub, ok }: typeof STATS[0]) {
   )
 }
 
+// ─── Stacked bar chart — proportions de masse sur 6 mesures ──────────────────
+const BAR_DATA = [
+  { date: 'Déc 25', muscle: 49, fat: 16, other: 35 },
+  { date: 'Jan 26', muscle: 50, fat: 15, other: 35 },
+  { date: 'Fév 26', muscle: 50, fat: 15, other: 35 },
+  { date: 'Mar 26', muscle: 51, fat: 14, other: 35 },
+  { date: 'Avr 26', muscle: 51, fat: 14, other: 35 },
+  { date: 'Mai 26', muscle: 52, fat: 13, other: 35 },
+]
+
+const BAR_W = 50, BAR_GAP = 28, BAR_H = 240, CHART_PAD_X = 20, CHART_PAD_TOP = 32
+const N = BAR_DATA.length
+const CHART_W = CHART_PAD_X * 2 + N * BAR_W + (N - 1) * BAR_GAP
+const SVG_H = CHART_PAD_TOP + BAR_H + 36  // bars + x-label area
+
+const SEGMENTS = [
+  { key: 'other' as const,  label: 'Autres',  color: '#D8D8D2' },
+  { key: 'fat'   as const,  label: 'Gras',    color: 'var(--color-rust-soft)',   border: 'var(--color-rust)' },
+  { key: 'muscle'as const,  label: 'Muscle',  color: 'var(--color-lichen-soft)', border: 'var(--color-lichen)' },
+]
+
+function CompositionBarChart() {
+  return (
+    <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
+        <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.015em' }}>
+          Évolution des proportions — 6 mesures Withings
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-ink-4)', letterSpacing: '0.06em' }}>
+          Déc 25 → Mai 26
+        </span>
+      </div>
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+        {SEGMENTS.slice().reverse().map(s => (
+          <span key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.05em', color: 'var(--color-ink-3)' }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: s.color, border: s.border ? `1px solid ${s.border}` : '1px solid #ccc' }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+      {/* SVG */}
+      <svg viewBox={`0 0 ${CHART_W} ${SVG_H}`} style={{ width: '100%' }}>
+        {BAR_DATA.map((d, bi) => {
+          const bx = CHART_PAD_X + bi * (BAR_W + BAR_GAP)
+          // segments from top: other → fat → muscle (bottom)
+          const segs = [
+            { pct: d.other,  color: '#D8D8D2' },
+            { pct: d.fat,    color: 'var(--color-rust-soft)' },
+            { pct: d.muscle, color: 'var(--color-lichen-soft)' },
+          ]
+          let cy = CHART_PAD_TOP  // current y, fills top → bottom
+          return (
+            <g key={d.date}>
+              {segs.map((seg, si) => {
+                const sh = (seg.pct / 100) * BAR_H
+                const ry = cy
+                cy += sh
+                const showLabel = sh > 22
+                return (
+                  <g key={si}>
+                    <rect x={bx} y={ry} width={BAR_W} height={sh} rx={si === 0 ? 4 : 0}
+                      fill={seg.color} />
+                    {si < segs.length - 1 && (
+                      <rect x={bx} y={ry + sh - 1} width={BAR_W} height={1} fill="rgba(255,255,255,0.5)" />
+                    )}
+                    {showLabel && (
+                      <text
+                        x={bx + BAR_W / 2} y={ry + sh / 2 + 4}
+                        textAnchor="middle" fontFamily="var(--font-mono)" fontSize={9}
+                        fill={si === 2 ? '#5C7A4A' : si === 1 ? 'var(--color-rust)' : '#999'}
+                        fontWeight="600"
+                      >
+                        {seg.pct}%
+                      </text>
+                    )}
+                  </g>
+                )
+              })}
+              {/* Bottom rounded corners on last segment */}
+              <rect x={bx} y={CHART_PAD_TOP + BAR_H - 4} width={BAR_W} height={4} rx={4}
+                fill="var(--color-lichen-soft)" />
+              {/* Date label */}
+              <text x={bx + BAR_W / 2} y={CHART_PAD_TOP + BAR_H + 20}
+                textAnchor="middle" fontFamily="var(--font-mono)" fontSize={9}
+                fill="#A8A8A8">
+                {d.date}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default function CompositionPage() {
-  const evolSeries = [
-    { values: [74.8, 74.2, 73.9, 74.0, 73.2] as [number, number, number, number, number], color: 'var(--color-ink)', label: 'Poids (kg)' },
-    { values: [16.1, 15.9, 15.6, 15.4, 15.2] as [number, number, number, number, number], color: 'var(--color-rust)', label: 'Masse grasse (%)' },
-  ]
-
   return (
     <div style={{ padding: '32px 56px 80px' }}>
       <PageHeader
@@ -138,12 +229,7 @@ export default function CompositionPage() {
         </div>
       </div>
 
-      {/* Evolution chart (placeholder — stacked bars à venir) */}
-      <MiniLineChart
-        title="Évolution composition — 6 derniers mois (Withings)"
-        series={evolSeries}
-        dates={['Oct 25', 'Déc 25', 'Fév 26', 'Avr 26', 'Mai 26']}
-      />
+      <CompositionBarChart />
     </div>
   )
 }
