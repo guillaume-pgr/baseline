@@ -82,32 +82,39 @@ function StatCard({ label, value, unit, sub, ok }: typeof STATS[0]) {
   )
 }
 
-// ─── Stacked bar chart — proportions de masse sur 6 mesures ──────────────────
-const BAR_DATA = [
-  { date: 'Déc 25', muscle: 49, fat: 16, other: 35 },
-  { date: 'Jan 26', muscle: 50, fat: 15, other: 35 },
-  { date: 'Fév 26', muscle: 50, fat: 15, other: 35 },
-  { date: 'Mar 26', muscle: 51, fat: 14, other: 35 },
-  { date: 'Avr 26', muscle: 51, fat: 14, other: 35 },
-  { date: 'Mai 26', muscle: 52, fat: 13, other: 35 },
-]
+// ─── Dual-curve evolution chart — Muscle % + Gras % over 6 Withings measurements ─
+const EVOL_DATES = ['Déc 25', 'Jan 26', 'Fév 26', 'Mar 26', 'Avr 26', 'Mai 26']
+const MUSCLE_PCT = [49, 50, 50, 51, 51, 52]
+const FAT_PCT    = [16, 15, 15, 14, 14, 13]
 
-const BAR_W = 50, BAR_GAP = 28, BAR_H = 240, CHART_PAD_X = 20, CHART_PAD_TOP = 32
-const N = BAR_DATA.length
-const CHART_W = CHART_PAD_X * 2 + N * BAR_W + (N - 1) * BAR_GAP
-const SVG_H = CHART_PAD_TOP + BAR_H + 36  // bars + x-label area
+// Y scale: [11, 54] with 10% padding each side → visible range amplified
+const Y_MIN = 11, Y_MAX = 54
+const EVOL_W = 700, EVOL_H = 120, EVOL_TOTAL_H = 168
 
-const SEGMENTS = [
-  { key: 'other' as const,  label: 'Autres',  color: '#D8D8D2' },
-  { key: 'fat'   as const,  label: 'Gras',    color: 'var(--color-rust-soft)',   border: 'var(--color-rust)' },
-  { key: 'muscle'as const,  label: 'Muscle',  color: 'var(--color-lichen-soft)', border: 'var(--color-lichen)' },
-]
+function toY(v: number): number {
+  return EVOL_H - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * EVOL_H * 0.8 + EVOL_H * 0.1
+}
 
-function CompositionBarChart() {
+function CompositionEvolutionChart() {
+  const n = EVOL_DATES.length
+  const step = (EVOL_W - 80) / (n - 1)
+  const xs = EVOL_DATES.map((_, i) => 40 + i * step)
+  const muscleYs = MUSCLE_PCT.map(toY)
+  const fatYs    = FAT_PCT.map(toY)
+
+  const musclePts = xs.map((x, i) => `${x},${muscleYs[i]}`).join(' ')
+  const fatPts    = xs.map((x, i) => `${x},${fatYs[i]}`).join(' ')
+
+  // Area paths: curve down to lowest visible point + breathing room
+  const muscleBottom = Math.max(...muscleYs) + 8
+  const fatBottom    = Math.max(...fatYs) + 8
+  const muscleArea = `M ${xs[0]},${muscleBottom} ` + xs.map((x, i) => `L ${x},${muscleYs[i]}`).join(' ') + ` L ${xs[n - 1]},${muscleBottom} Z`
+  const fatArea    = `M ${xs[0]},${fatBottom} `    + xs.map((x, i) => `L ${x},${fatYs[i]}`).join(' ')    + ` L ${xs[n - 1]},${fatBottom} Z`
+
   return (
     <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
         <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.015em' }}>
           Évolution des proportions — 6 mesures Withings
         </span>
@@ -116,64 +123,74 @@ function CompositionBarChart() {
         </span>
       </div>
       {/* Legend */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
-        {SEGMENTS.slice().reverse().map(s => (
-          <span key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.05em', color: 'var(--color-ink-3)' }}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: s.color, border: s.border ? `1px solid ${s.border}` : '1px solid #ccc' }} />
+      <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+        {[
+          { label: 'Muscle %', color: 'var(--color-lichen)' },
+          { label: 'Gras %',   color: 'var(--color-rust)' },
+        ].map(s => (
+          <span key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.05em', color: 'var(--color-ink-3)' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color, flexShrink: 0 }} />
             {s.label}
           </span>
         ))}
       </div>
-      {/* SVG */}
-      <svg viewBox={`0 0 ${CHART_W} ${SVG_H}`} style={{ width: '100%' }}>
-        {BAR_DATA.map((d, bi) => {
-          const bx = CHART_PAD_X + bi * (BAR_W + BAR_GAP)
-          // segments from top: other → fat → muscle (bottom)
-          const segs = [
-            { pct: d.other,  color: '#D8D8D2' },
-            { pct: d.fat,    color: 'var(--color-rust-soft)' },
-            { pct: d.muscle, color: 'var(--color-lichen-soft)' },
-          ]
-          let cy = CHART_PAD_TOP  // current y, fills top → bottom
-          return (
-            <g key={d.date}>
-              {segs.map((seg, si) => {
-                const sh = (seg.pct / 100) * BAR_H
-                const ry = cy
-                cy += sh
-                const showLabel = sh > 22
-                return (
-                  <g key={si}>
-                    <rect x={bx} y={ry} width={BAR_W} height={sh} rx={si === 0 ? 4 : 0}
-                      fill={seg.color} />
-                    {si < segs.length - 1 && (
-                      <rect x={bx} y={ry + sh - 1} width={BAR_W} height={1} fill="rgba(255,255,255,0.5)" />
-                    )}
-                    {showLabel && (
-                      <text
-                        x={bx + BAR_W / 2} y={ry + sh / 2 + 4}
-                        textAnchor="middle" fontFamily="var(--font-mono)" fontSize={9}
-                        fill={si === 2 ? '#5C7A4A' : si === 1 ? 'var(--color-rust)' : '#999'}
-                        fontWeight="600"
-                      >
-                        {seg.pct}%
-                      </text>
-                    )}
-                  </g>
-                )
-              })}
-              {/* Bottom rounded corners on last segment */}
-              <rect x={bx} y={CHART_PAD_TOP + BAR_H - 4} width={BAR_W} height={4} rx={4}
-                fill="var(--color-lichen-soft)" />
-              {/* Date label */}
-              <text x={bx + BAR_W / 2} y={CHART_PAD_TOP + BAR_H + 20}
-                textAnchor="middle" fontFamily="var(--font-mono)" fontSize={9}
-                fill="#A8A8A8">
-                {d.date}
-              </text>
-            </g>
-          )
-        })}
+      <svg viewBox={`0 0 ${EVOL_W} ${EVOL_TOTAL_H}`} style={{ width: '100%' }}>
+        <defs>
+          <linearGradient id="comp-muscle-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-lichen)" stopOpacity={0.18} />
+            <stop offset="100%" stopColor="var(--color-lichen)" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="comp-fat-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-rust)" stopOpacity={0.18} />
+            <stop offset="100%" stopColor="var(--color-rust)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        {/* Subtle grid */}
+        <g stroke="rgba(0,0,0,0.05)" strokeWidth={1}>
+          <line x1={40} y1={24 + EVOL_H * 0.25} x2={EVOL_W - 40} y2={24 + EVOL_H * 0.25} />
+          <line x1={40} y1={24 + EVOL_H * 0.75} x2={EVOL_W - 40} y2={24 + EVOL_H * 0.75} />
+        </g>
+        {/* Area fills */}
+        <path d={muscleArea} fill="url(#comp-muscle-grad)" />
+        <path d={fatArea}    fill="url(#comp-fat-grad)" />
+        {/* Muscle curve */}
+        <polyline fill="none" stroke="var(--color-lichen)" strokeWidth={1.5}
+          strokeLinecap="round" strokeLinejoin="round" points={musclePts} />
+        {xs.map((x, i) => (
+          <g key={`m${i}`}>
+            <circle cx={x} cy={muscleYs[i]} r={i === n - 1 ? 4 : 3}
+              fill="var(--color-lichen)"
+              stroke={i === n - 1 ? 'white' : 'var(--color-lichen)'}
+              strokeWidth={i === n - 1 ? 1.5 : 0}
+            />
+            <text x={x} y={muscleYs[i] - 7} textAnchor="middle"
+              fontFamily="var(--font-mono)" fontSize={9} fill="#5C7A4A">
+              {MUSCLE_PCT[i]}%
+            </text>
+          </g>
+        ))}
+        {/* Fat curve */}
+        <polyline fill="none" stroke="var(--color-rust)" strokeWidth={1.5}
+          strokeLinecap="round" strokeLinejoin="round" points={fatPts} />
+        {xs.map((x, i) => (
+          <g key={`f${i}`}>
+            <circle cx={x} cy={fatYs[i]} r={i === n - 1 ? 4 : 3}
+              fill="var(--color-rust)"
+              stroke={i === n - 1 ? 'white' : 'var(--color-rust)'}
+              strokeWidth={i === n - 1 ? 1.5 : 0}
+            />
+            <text x={x} y={fatYs[i] + 16} textAnchor="middle"
+              fontFamily="var(--font-mono)" fontSize={9} fill="var(--color-rust)">
+              {FAT_PCT[i]}%
+            </text>
+          </g>
+        ))}
+        {/* X labels */}
+        <g fontFamily="var(--font-mono)" fontSize={9} fill="#A8A8A8">
+          {EVOL_DATES.map((d, i) => (
+            <text key={i} x={xs[i]} y={EVOL_TOTAL_H - 4} textAnchor="middle">{d}</text>
+          ))}
+        </g>
       </svg>
     </div>
   )
@@ -229,7 +246,7 @@ export default function CompositionPage() {
         </div>
       </div>
 
-      <CompositionBarChart />
+      <CompositionEvolutionChart />
     </div>
   )
 }
