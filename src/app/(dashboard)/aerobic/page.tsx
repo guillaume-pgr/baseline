@@ -2,54 +2,33 @@ import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 import { IconDownload } from '@tabler/icons-react'
 
-// ─── VO2 gauge — horseshoe arc, value centered ────────────────────────────────
-// Arc: M 30 200 A 110 110 0 1 1 250 200 → circle center (140,200)
-// Value "52,0" placed at center of full viewBox (140,140) — above the arc opening
-const C = 2 * Math.PI * 110
+// ─── VO2 gauge — 270° horseshoe arc open at bottom ───────────────────────────
+// Center (140, 150), r=110. 270° arc: 135° → 45° clockwise in SVG (through top).
+// Start (62.22, 227.78) → end (217.78, 227.78). Opening gap faces downward.
 const VO2_VALUE = 52.0
-const VO2_MAX_SCALE = 80
-const VO2_MIN_SCALE = 20
-const ratio = (VO2_VALUE - VO2_MIN_SCALE) / (VO2_MAX_SCALE - VO2_MIN_SCALE)
-// 270° arc → active portion covers ratio * 270°
-const arcLen = (ratio * (3 / 4)) * C
-const trackOffset = C * (1 / 4) // 90° gap at bottom
-const activeOffset = C - arcLen + trackOffset
+const C270 = 2 * Math.PI * 110 * 0.75           // 270° arc length ≈ 519.03 px
+const VO2_ACTIVE = ((VO2_VALUE - 20) / 60) * C270 // 52 on scale 20–80
+// Path: large-arc=1, sweep=1 (CW in SVG) → goes from lower-left, up through top, to lower-right
+const ARC = 'M 62.22 227.78 A 110 110 0 1 1 217.78 227.78'
 
 function VO2Gauge() {
   return (
     <svg viewBox="0 0 280 280" width={280} height={280}>
-      {/* Track */}
-      <circle
-        cx={140} cy={200} r={110}
-        fill="none"
-        stroke="rgba(0,0,0,0.07)"
-        strokeWidth={14}
-        strokeDasharray={`${C * 0.75} ${C * 0.25}`}
-        strokeDashoffset={C * 0.25}
-        strokeLinecap="round"
-        transform="rotate(135 140 200)"
-      />
-      {/* Active arc */}
-      <circle
-        cx={140} cy={200} r={110}
-        fill="none"
-        stroke="var(--color-aqua)"
-        strokeWidth={14}
-        strokeDasharray={`${arcLen} ${C - arcLen}`}
-        strokeDashoffset={C - arcLen + C * 0.25}
-        strokeLinecap="round"
-        transform="rotate(135 140 200)"
-      />
-      {/* Scale labels */}
-      <text x={22} y={215} fontFamily="var(--font-mono)" fontSize={10} fill="var(--color-ink-4)" textAnchor="middle">{VO2_MIN_SCALE}</text>
-      <text x={258} y={215} fontFamily="var(--font-mono)" fontSize={10} fill="var(--color-ink-4)" textAnchor="middle">{VO2_MAX_SCALE}</text>
-      {/* Value centered inside arc */}
-      <text x={140} y={108} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} letterSpacing="0.16em" fill="var(--color-ink-4)">VO₂MAX</text>
-      <text x={140} y={172} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={72} fontWeight="200" letterSpacing="-0.05em" fill="var(--color-ink)">52,0</text>
-      <text x={140} y={190} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={11} fill="var(--color-ink-3)">ml·kg⁻¹·min⁻¹</text>
-      {/* Badge */}
-      <rect x={100} y={200} width={80} height={20} rx={10} fill="var(--color-aqua-soft)" />
-      <text x={140} y={214} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} letterSpacing="0.06em" fill="var(--color-aqua)">Excellent</text>
+      {/* Track (full 270° arc) */}
+      <path d={ARC} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={11} strokeLinecap="round" />
+      {/* Active arc — 52 on scale 20–80 */}
+      <path d={ARC} fill="none" stroke="var(--color-aqua)" strokeWidth={11} strokeLinecap="round"
+        strokeDasharray={`${VO2_ACTIVE.toFixed(2)} 10000`} />
+      {/* Scale end labels — just below arc endpoints */}
+      <text x={62} y={249} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} fill="var(--color-ink-4)">20</text>
+      <text x={218} y={249} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} fill="var(--color-ink-4)">80</text>
+      {/* Center content — stacked inside horseshoe */}
+      <text x={140} y={100} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} letterSpacing="0.16em" fill="var(--color-ink-4)">VO₂MAX</text>
+      <text x={140} y={162} textAnchor="middle" fontFamily="var(--font-sans)" fontSize={66} fontWeight="300" letterSpacing="-0.05em" fill="var(--color-ink)">52,0</text>
+      <text x={140} y={180} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} fill="var(--color-ink-3)">ml·kg⁻¹·min⁻¹</text>
+      {/* Pill — sits in the gap opening */}
+      <rect x={92} y={196} width={96} height={22} rx={11} fill="var(--color-aqua-soft)" />
+      <text x={140} y={211} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} letterSpacing="0.06em" fill="var(--color-aqua)">Excellent</text>
     </svg>
   )
 }
