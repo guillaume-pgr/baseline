@@ -126,7 +126,7 @@ export default function BloodworkPage() {
 
   const categories = filter ? data.bloodwork.categories.filter(c => c.id === filter) : data.bloodwork.categories
   const hero = data.bloodworkHero
-  const dates = data.bloodwork.dates
+  const dates = Array.from(data.bloodwork.dates)
 
   return (
     <div style={{ padding: '32px 56px 80px' }}>

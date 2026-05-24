@@ -30,7 +30,7 @@ export default function DomainsGrid({ domains, cohortLabel }: Props) {
         borderRadius: 16,
         overflow: 'hidden',
       }}>
-        {domains.map((domain) => (
+        {domains.map((domain: any) => (
           <DomainCard key={domain.id} domain={domain} />
         ))}
       </div>

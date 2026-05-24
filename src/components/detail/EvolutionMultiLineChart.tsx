@@ -1,5 +1,5 @@
-// Multi-series evolution chart — thin lines, small dots, optional area under first series.
-// Same visual register as EvolutionLineChart (aerobic/sleep style).
+// Multi-series evolution chart — thin lines, small dots, area under first series.
+// Each series normalized independently → trends visible regardless of unit difference.
 
 type Series = {
   label: string
@@ -11,15 +11,22 @@ type EvolutionMultiLineChartProps = {
   title: string
   series: Series[]
   dates: string[]
-  id: string          // unique ID for gradient
+  id: string
   showValues?: boolean
 }
 
-function normalize(values: number[], allValues: number[], H: number): number[] {
-  const min = Math.min(...allValues)
-  const max = Math.max(...allValues)
+// Normalize one series to [0.3H, 1.1H] range, independently of other series.
+function normalizeSeries(values: number[], H: number): number[] {
+  const min = Math.min(...values)
+  const max = Math.max(...values)
   const range = max - min || 1
   return values.map(v => H - ((v - min) / range) * H * 0.8 + H * 0.1)
+}
+
+// Build a closed area path: rise along curve, descend to areaBottom, return.
+function buildAreaPath(xs: number[], ys: number[], areaBottom: number): string {
+  const pts = xs.map((x, i) => `L ${x},${ys[i]}`).join(' ')
+  return `M ${xs[0]},${areaBottom} ${pts} L ${xs[xs.length - 1]},${areaBottom} Z`
 }
 
 const W = 700, CHART_H = 120, TOTAL_H = 168
@@ -32,14 +39,14 @@ export default function EvolutionMultiLineChart({
   const xs = dates.map((_, i) => 40 + i * step)
   const gradId = `evol-multi-${id}`
 
-  // Normalize all series on a shared scale for proper comparison
-  const allValues = series.flatMap(s => s.values)
-  const ysByS = series.map(s => normalize(s.values, allValues, CHART_H))
+  // Each series normalized on its own scale so trends are always visible
+  const ysByS = series.map(s => normalizeSeries(s.values, CHART_H))
 
-  const primaryPts = xs.map((x, i) => `${x},${ysByS[0][i]}`).join(' ')
-  const areaBottom = CHART_H + 24
-  const primaryArea = `${xs[0]},${areaBottom} ${primaryPts} ${xs[n - 1]},${areaBottom}`
+  // Area under primary series: descends to its lowest visible point + 8px breathing room
+  const primaryYs = ysByS[0]
+  const areaBottom = Math.max(...primaryYs) + 8
   const primaryColor = series[0]?.color ?? 'var(--color-ink)'
+  const areaPath = buildAreaPath(xs, primaryYs, areaBottom)
 
   return (
     <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px' }}>
@@ -61,8 +68,9 @@ export default function EvolutionMultiLineChart({
       </div>
       <svg viewBox={`0 0 ${W} ${TOTAL_H}`} style={{ width: '100%' }}>
         <defs>
+          {/* objectBoundingBox (default): gradient fills bounding box of the area path */}
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={primaryColor} stopOpacity={0.1} />
+            <stop offset="0%" stopColor={primaryColor} stopOpacity={0.20} />
             <stop offset="100%" stopColor={primaryColor} stopOpacity={0} />
           </linearGradient>
         </defs>
@@ -72,7 +80,7 @@ export default function EvolutionMultiLineChart({
           <line x1={40} y1={24 + CHART_H * 0.75} x2={W - 40} y2={24 + CHART_H * 0.75} />
         </g>
         {/* Area under primary series */}
-        <polygon points={primaryArea} fill={`url(#${gradId})`} />
+        <path d={areaPath} fill={`url(#${gradId})`} />
         {/* Lines + dots per series */}
         {series.map((s, si) => {
           const ys = ysByS[si]

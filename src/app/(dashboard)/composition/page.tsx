@@ -84,7 +84,7 @@ function StatCard({ label, value, unit, sub, ok }: Stat) {
   )
 }
 
-function CompositionEvolutionChart({ dates, musclePct, fatPct, evolution_dates }: { dates: string[]; musclePct: number[]; fatPct: number[]; evolution_dates: string[] }) {
+function CompositionEvolutionChart({ musclePct, fatPct, evolution_dates }: { musclePct: number[]; fatPct: number[]; evolution_dates: string[] }) {
   const EVOL_W = 700, EVOL_H = 120, EVOL_TOTAL_H = 168
   const Y_MIN = 11, Y_MAX = 54
 
@@ -256,7 +256,6 @@ export default function CompositionPage() {
       </div>
 
       <CompositionEvolutionChart
-        dates={compositionData.dates}
         musclePct={compositionData.evolution.musclePct}
         fatPct={compositionData.evolution.fatPct}
         evolution_dates={compositionData.evolution.dates}

@@ -57,6 +57,28 @@ function ZoneTable({ zones }: { zones: Array<{ zone: string; name: string; bpm: 
     </div>
   )
 }
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function AerobicPage() {
+  const data = usePersonaData()
+
+  if (!data) {
+    return (
+      <div style={{ padding: '32px 56px 80px' }}>
+        <p style={{ color: 'var(--color-ink-3)', fontSize: 14 }}>
+          Aucune donnée disponible. Importe tes données réelles via le panneau de persona.
+        </p>
+      </div>
+    )
+  }
+
+  const aerobicData = data.aerobicData
+  const xs = [60, 185, 345, 510, 660]
+  const min = 46, max = 55, H = 120
+  const ys = aerobicData.history.map(v => H - ((v - min) / (max - min)) * H * 0.8 + H * 0.1)
+  const pts = xs.map((x, i) => `${x},${ys[i]}`).join(' ')
+  const area = `${xs[0]},${H + 4} ${pts} ${xs[xs.length - 1]},${H + 4}`
+
   return (
     <div style={{ padding: '32px 56px 80px' }}>
       <PageHeader

@@ -52,7 +52,6 @@ function DonutChart({ phyla, shannon }: { phyla: Phylum[]; shannon: number }) {
     </div>
   )
 }
-}
 
 // ─── Bacteria list ────────────────────────────────────────────────────────────
 type Bacterium = { name: string; role: string; pct: number; status: 'optimal' | 'warn' | 'low'; color: string }
@@ -131,7 +130,7 @@ export default function MicrobiomePage() {
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 16 }}>
             Espèces clés
           </p>
-          {microbiomeData.bacteria.map(b => <BacteriaRow key={b.name} b={b} />)}
+          {microbiomeData.bacteria.map((b: any) => <BacteriaRow key={b.name} b={b as Bacterium} />)}
         </div>
       </div>
 

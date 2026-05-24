@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Healthdash — Synthesis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+:root {
+  /* Bases */
+  --bg: #FAFAF8;
+  --surface: #FFFFFF;
+  --surface-2: #F4F3EF;
+  --surface-3: #ECEAE5;
+  --ink: #1A1A1A;
+  --ink-2: #404040;
+  --ink-3: #707070;
+  --ink-4: #A8A8A8;
+  --ink-5: #D0D0D0;
+  --ink-6: #E5E3DE;
+  --line: rgba(0,0,0,0.06);
+  --line-2: rgba(0,0,0,0.10);
+
+  /* Accents biotech subtils — désaturés volontairement */
+  --aqua: #7BA8B5;          /* cyan glacé · data, bloodwork */
+  --aqua-soft: #DBE6EA;
+  --lichen: #9CB380;        /* vert lichen · positive, body */
+  --lichen-soft: #E3EAD8;
+  --amber: #D4A574;         /* ambre poudré · attention douce */
+  --amber-soft: #F1E3D0;
+  --rust: #B5705A;          /* rouille · alerte */
+  --rust-soft: #EBD6CD;
+  --lavender: #9890B5;      /* lavande · recovery, sleep */
+  --lavender-soft: #E2DFEA;
+
+  --sans: 'Manrope', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  min-width: 1440px;
+  letter-spacing: -0.005em;
+  font-weight: 400;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 240px 1fr 380px;
+  min-height: 100vh;
+}
+
+/* ============ RAIL ============ */
+.rail {
+  border-right: 1px solid var(--line);
+  padding: 32px 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.brand {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+  padding: 0 6px;
+}
+.brand-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 0 6px;
+  margin-bottom: 40px;
+}
+
+.persona {
+  padding: 16px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s;
+  margin-bottom: 36px;
+}
+.persona:hover { border-color: var(--line-2); }
+.persona-id {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 6px;
+}
+.persona-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-bottom: 2px;
+}
+.persona-meta {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.persona-chevron {
+  position: absolute;
+  top: 18px;
+  right: 14px;
+  color: var(--ink-4);
+  font-size: 14px;
+}
+
+.nav-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 0 8px;
+  margin-bottom: 10px;
+}
+
+.nav-block { margin-bottom: 32px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.nav-item:hover { background: var(--surface-2); }
+.nav-item.active {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.nav-item i {
+  font-size: 17px;
+  color: var(--ink-3);
+  width: 18px;
+}
+.nav-item.active i { color: var(--ink); }
+.nav-dot {
+  margin-left: auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-5);
+}
+.nav-dot.fresh { background: var(--aqua); }
+
+.nav-item.dim {
+  color: var(--ink-4);
+  font-size: 12px;
+  cursor: not-allowed;
+}
+.nav-item.dim i { color: var(--ink-4); font-size: 15px; }
+.nav-item.dim::after {
+  content: 'bientôt';
+  font-family: var(--mono);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-left: auto;
+  color: var(--ink-4);
+}
+
+.rail-foot {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.6;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+.rail-foot strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+/* ============ CANVAS ============ */
+.canvas {
+  padding: 32px 56px 80px;
+  overflow-y: auto;
+}
+
+.canvas-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 56px;
+}
+.canvas-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.canvas-actions { display: flex; gap: 8px; align-items: center; }
+
+.sync-pills { display: flex; gap: 6px; margin-right: 12px; }
+.sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+.sync-pill i { font-size: 11px; color: var(--lichen); }
+
+.live-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--lichen);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.4); }
+}
+
+.btn {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.15s;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--ink-2);
+}
+.btn:hover { border-color: var(--ink-3); color: var(--ink); }
+.btn-primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.btn-primary:hover { background: var(--ink-2); border-color: var(--ink-2); }
+
+/* ============ HERO — épuré ============ */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 64px;
+  align-items: center;
+  margin-bottom: 72px;
+}
+
+.hero-statement {
+  font-size: 56px;
+  font-weight: 200;
+  line-height: 1.0;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  margin-bottom: 28px;
+  max-width: 540px;
+}
+.hero-statement strong {
+  font-weight: 700;
+}
+.hero-statement em {
+  font-style: normal;
+  position: relative;
+  white-space: nowrap;
+}
+.hero-statement em::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 4px;
+  height: 14px;
+  background: var(--lichen-soft);
+  z-index: -1;
+}
+
+.hero-context {
+  font-size: 14px;
+  color: var(--ink-3);
+  max-width: 460px;
+  line-height: 1.6;
+}
+
+/* Dial — plus petit, plus net */
+.dial-mini {
+  position: relative;
+  width: 260px;
+  height: 260px;
+}
+.dial-mini svg { width: 100%; height: 100%; }
+.dial-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.dial-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 6px;
+}
+.dial-value {
+  font-size: 84px;
+  font-weight: 200;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: var(--ink);
+}
+.dial-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+.dial-delta {
+  margin-top: 12px;
+  padding: 4px 11px;
+  background: var(--lichen-soft);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+}
+
+/* ============ DOMAINS — la grosse synthèse visuelle ============ */
+.domains-section {
+  margin-bottom: 72px;
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 12px;
+}
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+.section-title {
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: -0.025em;
+}
+.section-title strong { font-weight: 700; }
+.section-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+.section-meta a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+}
+
+.domains {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.domain {
+  background: var(--surface);
+  padding: 28px 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.domain:hover { background: #FCFBF8; }
+
+.domain-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.domain-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.domain-icon i { font-size: 16px; }
+.domain-icon.blood { background: var(--rust-soft); color: var(--rust); }
+.domain-icon.body { background: var(--lichen-soft); color: var(--lichen); }
+.domain-icon.vo2 { background: var(--aqua-soft); color: var(--aqua); }
+.domain-icon.sleep { background: var(--lavender-soft); color: var(--lavender); }
+.domain-icon.micro { background: var(--amber-soft); color: var(--amber); }
+
+.domain-pct {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+.domain-pct strong { font-weight: 700; }
+.domain-pct.warn { color: var(--rust); }
+
+/* Mini radial pour la position dans la cohorte */
+.domain-ring {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.domain-ring svg {
+  width: 96px;
+  height: 96px;
+}
+.domain-ring-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.domain-value {
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+}
+.domain-unit {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-4);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.domain-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+.domain-sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.domain-trend {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.domain-trend-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+.domain-trend-value {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.domain-trend-value.up::before { content: '↗ '; color: var(--lichen); }
+.domain-trend-value.down::before { content: '↘ '; color: var(--rust); }
+.domain-trend-value.flat::before { content: '→ '; color: var(--ink-4); }
+
+/* ============ FOCUS — 2 cards courtes ============ */
+.focus-section { margin-bottom: 72px; }
+
+.focus-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+}
+
+.focus-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px 32px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+.focus-card:hover {
+  border-color: var(--line-2);
+  transform: translateY(-1px);
+}
+
+.focus-card.dark {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.focus-eyebrow {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.focus-eyebrow::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--rust);
+}
+.focus-card.dark .focus-eyebrow { color: rgba(250,250,248,0.5); }
+.focus-card.dark .focus-eyebrow::before { background: var(--aqua); }
+
+.focus-title {
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin-bottom: 12px;
+  flex: 1;
+}
+.focus-title strong { font-weight: 700; }
+.focus-title em {
+  font-style: normal;
+  color: var(--rust);
+  font-weight: 600;
+}
+.focus-card.dark .focus-title em { color: var(--aqua); }
+
+.focus-body {
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.focus-card.dark .focus-body { color: rgba(250,250,248,0.7); }
+
+.focus-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.focus-card.dark .focus-foot { border-top-color: rgba(250,250,248,0.15); }
+
+.focus-tags {
+  display: flex;
+  gap: 6px;
+}
+.focus-tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  text-transform: uppercase;
+}
+.focus-card.dark .focus-tag {
+  color: rgba(250,250,248,0.6);
+  background: rgba(250,250,248,0.08);
+}
+
+.focus-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.focus-card.dark .focus-cta { color: var(--bg); }
+.focus-cta i { font-size: 14px; }
+
+/* ============ ACTIVITY — recent in compact form ============ */
+.activity-section { margin-bottom: 32px; }
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.activity-card {
+  background: var(--surface);
+  padding: 22px 24px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.activity-card:hover { background: #FCFBF8; }
+
+.activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.activity-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.activity-kind::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+.activity-kind.blood::before { background: var(--rust); }
+.activity-kind.vo2::before { background: var(--aqua); }
+.activity-kind.sleep::before { background: var(--lavender); }
+.activity-date {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-4);
+  letter-spacing: 0.04em;
+}
+.activity-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.activity-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.activity-value {
+  font-size: 24px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.activity-unit {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  letter-spacing: 0.04em;
+}
+.activity-delta {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+}
+.activity-delta.up { color: var(--lichen); }
+.activity-delta.down { color: var(--rust); }
+
+.see-all {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+.see-all a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+}
+
+/* ============ COMPANION ============ */
+.companion {
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.companion-head {
+  padding: 28px 28px 22px;
+  border-bottom: 1px solid var(--line);
+}
+.companion-eyebrow {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.companion-eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lichen);
+  animation: pulse-dot 2s infinite;
+}
+.companion-name {
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.companion-name strong { font-weight: 700; }
+.companion-context {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 6px;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+
+.companion-stream {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.msg-disclaimer {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  text-align: center;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.msg-bot, .msg-user {
+  max-width: 92%;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 14px 18px;
+  border-radius: 12px;
+}
+.msg-bot {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-bottom-left-radius: 3px;
+  align-self: flex-start;
+}
+.msg-bot strong { color: var(--ink); font-weight: 600; }
+.msg-user {
+  background: var(--ink);
+  color: var(--bg);
+  border-bottom-right-radius: 3px;
+  align-self: flex-end;
+}
+
+.msg-cite {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink-4);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.companion-suggest {
+  padding: 0 28px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.suggest-btn {
+  text-align: left;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--ink-2);
+  transition: all 0.15s;
+}
+.suggest-btn:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+  background: var(--surface-2);
+}
+.suggest-btn::before {
+  content: '→';
+  margin-right: 8px;
+  color: var(--ink-4);
+}
+.suggest-btn:hover::before { color: var(--ink); }
+
+.companion-input {
+  padding: 18px 28px 24px;
+  border-top: 1px solid var(--line);
+}
+.input-wrap { position: relative; }
+.input-wrap textarea {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 14px 48px 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  resize: none;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-wrap textarea:focus { border-color: var(--ink-3); }
+.input-wrap textarea::placeholder { color: var(--ink-4); }
+.input-send {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.companion-foot {
+  padding: 0 28px 18px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-4);
+  text-align: center;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ink-5); border-radius: 3px; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.canvas > * { animation: fade-up 0.5s ease backwards; }
+.canvas > *:nth-child(1) { animation-delay: 0s; }
+.canvas > *:nth-child(2) { animation-delay: 0.06s; }
+.canvas > *:nth-child(3) { animation-delay: 0.12s; }
+.canvas > *:nth-child(4) { animation-delay: 0.18s; }
+.canvas > *:nth-child(5) { animation-delay: 0.24s; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- RAIL -->
+  <aside class="rail">
+    <div class="brand">Healthdash</div>
+    <div class="brand-meta">v0.4 · performance</div>
+
+    <div class="persona">
+      <div class="persona-id">Athlete · 30 ans</div>
+      <div class="persona-name">Guillaume Pas</div>
+      <div class="persona-meta">178 cm · 73,2 kg · H</div>
+      <i class="ti ti-selector persona-chevron"></i>
+    </div>
+
+    <div class="nav-block">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
+    </div>
+
+    <div class="nav-block">
+      <div class="nav-label">Signaux</div>
+      <div class="nav-item"><i class="ti ti-droplet"></i>Prises de sang<span class="nav-dot fresh"></span></div>
+      <div class="nav-item"><i class="ti ti-stretching"></i>Composition<span class="nav-dot"></span></div>
+      <div class="nav-item"><i class="ti ti-activity"></i>Capacité aérobie<span class="nav-dot"></span></div>
+      <div class="nav-item"><i class="ti ti-moon-stars"></i>Sommeil &amp; HRV<span class="nav-dot"></span></div>
+      <div class="nav-item"><i class="ti ti-bacteria"></i>Microbiote</div>
+    </div>
+
+    <div class="nav-block">
+      <div class="nav-label">Sources</div>
+      <div class="nav-item"><i class="ti ti-plug-connected"></i>Appareils connectés</div>
+      <div class="nav-item dim"><i class="ti ti-dna"></i>Génétique</div>
+      <div class="nav-item dim"><i class="ti ti-tools-kitchen-2"></i>Nutrition</div>
+    </div>
+
+    <div class="rail-foot">
+      <strong>Tes données sont à toi.</strong>
+      Chiffrement de bout en bout. Outil éducatif &mdash; pas un dispositif médical.
+    </div>
+  </aside>
+
+  <!-- CANVAS -->
+  <main class="canvas">
+
+    <!-- HEAD minimal -->
+    <div class="canvas-head">
+      <div class="canvas-eyebrow">Jeudi · 14 mai 2026 · Semaine 20</div>
+      <div class="canvas-actions">
+        <div class="sync-pills">
+          <span class="sync-pill"><span class="live-dot"></span>Garmin · 4 min</span>
+          <span class="sync-pill"><i class="ti ti-check"></i>Withings · 2 h</span>
+        </div>
+        <button class="btn"><i class="ti ti-upload"></i>Importer un bilan</button>
+        <button class="btn btn-primary"><i class="ti ti-plus"></i>Mesure</button>
+      </div>
+    </div>
+
+    <!-- HERO épuré -->
+    <section class="hero">
+      <div>
+        <h1 class="hero-statement">
+          Ton corps performe<br>comme un <em><strong>26 ans</strong></em>.
+        </h1>
+        <p class="hero-context">
+          Composite de 5 domaines biomarqueurs &mdash; sang, composition, aérobie, sommeil, microbiote &mdash; normalisé sur 2 840 hommes actifs de 28-34 ans.
+        </p>
+      </div>
+
+      <div class="dial-mini">
+        <svg viewBox="0 0 280 280">
+          <circle cx="140" cy="140" r="110" fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="2"/>
+          <circle cx="140" cy="140" r="110"
+                  fill="none" stroke="#1A1A1A" stroke-width="2"
+                  stroke-dasharray="691.15"
+                  stroke-dashoffset="89.85"
+                  transform="rotate(135 140 140)"
+                  stroke-linecap="round"/>
+          <g stroke="rgba(0,0,0,0.12)" stroke-width="1">
+            <line x1="140" y1="22" x2="140" y2="30"/>
+            <line x1="258" y1="140" x2="250" y2="140"/>
+            <line x1="22" y1="140" x2="30" y2="140"/>
+            <line x1="140" y1="258" x2="140" y2="250"/>
+          </g>
+        </svg>
+        <div class="dial-center">
+          <div class="dial-label">Âge biologique</div>
+          <div class="dial-value">26,4</div>
+          <div class="dial-sub">vs 30,0 chrono</div>
+          <div class="dial-delta">−3,6 ans</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DOMAINS — la synthèse visuelle centrale -->
+    <section class="domains-section">
+      <div class="section-label">Domaines · q2 2026</div>
+      <div class="section-head">
+        <h2 class="section-title">Où tu te situes <strong>aujourd'hui</strong></h2>
+        <div class="section-meta">vs cohorte H 28-34 · <a>voir détail</a></div>
+      </div>
+
+      <div class="domains">
+
+        <!-- Bloodwork -->
+        <div class="domain">
+          <div class="domain-head">
+            <div class="domain-icon blood"><i class="ti ti-droplet"></i></div>
+            <div class="domain-pct warn"><strong>62</strong>ᵉ</div>
+          </div>
+          <div class="domain-ring">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(181,112,90,0.15)" stroke-width="4"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#B5705A" stroke-width="4"
+                      stroke-dasharray="264" stroke-dashoffset="100"
+                      transform="rotate(-90 50 50)" stroke-linecap="round"/>
+            </svg>
+            <div class="domain-ring-center">
+              <div class="domain-value">62</div>
+              <div class="domain-unit">/100</div>
+            </div>
+          </div>
+          <div class="domain-name">Sang</div>
+          <div class="domain-sub">HDL en dessous de la zone performance</div>
+          <div class="domain-trend">
+            <span class="domain-trend-label">90 jours</span>
+            <span class="domain-trend-value down">−4 pts</span>
+          </div>
+        </div>
+
+        <!-- Body composition -->
+        <div class="domain">
+          <div class="domain-head">
+            <div class="domain-icon body"><i class="ti ti-stretching"></i></div>
+            <div class="domain-pct"><strong>78</strong>ᵉ</div>
+          </div>
+          <div class="domain-ring">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(156,179,128,0.15)" stroke-width="4"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#9CB380" stroke-width="4"
+                      stroke-dasharray="264" stroke-dashoffset="58"
+                      transform="rotate(-90 50 50)" stroke-linecap="round"/>
+            </svg>
+            <div class="domain-ring-center">
+              <div class="domain-value">78</div>
+              <div class="domain-unit">/100</div>
+            </div>
+          </div>
+          <div class="domain-name">Composition</div>
+          <div class="domain-sub">15,2 % masse grasse · 58,1 kg maigre</div>
+          <div class="domain-trend">
+            <span class="domain-trend-label">90 jours</span>
+            <span class="domain-trend-value up">+3 pts</span>
+          </div>
+        </div>
+
+        <!-- VO2max -->
+        <div class="domain">
+          <div class="domain-head">
+            <div class="domain-icon vo2"><i class="ti ti-activity"></i></div>
+            <div class="domain-pct"><strong>95</strong>ᵉ</div>
+          </div>
+          <div class="domain-ring">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(123,168,181,0.15)" stroke-width="4"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#7BA8B5" stroke-width="4"
+                      stroke-dasharray="264" stroke-dashoffset="13"
+                      transform="rotate(-90 50 50)" stroke-linecap="round"/>
+            </svg>
+            <div class="domain-ring-center">
+              <div class="domain-value">95</div>
+              <div class="domain-unit">/100</div>
+            </div>
+          </div>
+          <div class="domain-name">Capacité aérobie</div>
+          <div class="domain-sub">52,0 mL/kg/min · top 5%</div>
+          <div class="domain-trend">
+            <span class="domain-trend-label">90 jours</span>
+            <span class="domain-trend-value up">+8 pts</span>
+          </div>
+        </div>
+
+        <!-- Sleep -->
+        <div class="domain">
+          <div class="domain-head">
+            <div class="domain-icon sleep"><i class="ti ti-moon-stars"></i></div>
+            <div class="domain-pct"><strong>84</strong>ᵉ</div>
+          </div>
+          <div class="domain-ring">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(152,144,181,0.15)" stroke-width="4"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#9890B5" stroke-width="4"
+                      stroke-dasharray="264" stroke-dashoffset="42"
+                      transform="rotate(-90 50 50)" stroke-linecap="round"/>
+            </svg>
+            <div class="domain-ring-center">
+              <div class="domain-value">84</div>
+              <div class="domain-unit">/100</div>
+            </div>
+          </div>
+          <div class="domain-name">Sommeil &amp; HRV</div>
+          <div class="domain-sub">68 ms HRV · 91 % efficacité</div>
+          <div class="domain-trend">
+            <span class="domain-trend-label">90 jours</span>
+            <span class="domain-trend-value up">+6 pts</span>
+          </div>
+        </div>
+
+        <!-- Microbiome -->
+        <div class="domain">
+          <div class="domain-head">
+            <div class="domain-icon micro"><i class="ti ti-bacteria"></i></div>
+            <div class="domain-pct"><strong>58</strong>ᵉ</div>
+          </div>
+          <div class="domain-ring">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(212,165,116,0.15)" stroke-width="4"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#D4A574" stroke-width="4"
+                      stroke-dasharray="264" stroke-dashoffset="111"
+                      transform="rotate(-90 50 50)" stroke-linecap="round"/>
+            </svg>
+            <div class="domain-ring-center">
+              <div class="domain-value">58</div>
+              <div class="domain-unit">/100</div>
+            </div>
+          </div>
+          <div class="domain-name">Microbiote</div>
+          <div class="domain-sub">Shannon 3,42 · diversité modérée</div>
+          <div class="domain-trend">
+            <span class="domain-trend-label">depuis nov 25</span>
+            <span class="domain-trend-value flat">stable</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FOCUS — 2 actions max -->
+    <section class="focus-section">
+      <div class="section-label">À considérer · cette semaine</div>
+      <div class="section-head">
+        <h2 class="section-title"><strong>Deux</strong> sujets pour toi</h2>
+      </div>
+
+      <div class="focus-grid">
+
+        <div class="focus-card dark">
+          <div class="focus-eyebrow">Protocole suggéré · 12 semaines</div>
+          <h3 class="focus-title">
+            Remonter ton <em>HDL</em><br>de 0,15 g/L.
+          </h3>
+          <p class="focus-body">
+            Trois leviers à forte évidence pour les athlètes d'endurance non-répondeurs : oméga-3 (2-4 g EPA+DHA/jour), réduction des glucides raffinés, ajout de 2 sessions HIIT par semaine.
+          </p>
+          <div class="focus-foot">
+            <div class="focus-tags">
+              <span class="focus-tag">12 sem</span>
+              <span class="focus-tag">Effort 2/5</span>
+              <span class="focus-tag">Evidence A−</span>
+            </div>
+            <a class="focus-cta">Activer <i class="ti ti-arrow-narrow-right"></i></a>
+          </div>
+        </div>
+
+        <div class="focus-card">
+          <div class="focus-eyebrow">Mesure à programmer</div>
+          <h3 class="focus-title">
+            Index <em>oméga-3</em><br>jamais mesuré.
+          </h3>
+          <p class="focus-body">
+            Marqueur clé pour comprendre pourquoi ton HDL ne répond pas à l'endurance. Test disponible en pharmacie ou via prescription, ~50 €.
+          </p>
+          <div class="focus-foot">
+            <div class="focus-tags">
+              <span class="focus-tag">~50 €</span>
+              <span class="focus-tag">1 fois/an</span>
+            </div>
+            <a class="focus-cta">Planifier <i class="ti ti-arrow-narrow-right"></i></a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ACTIVITY — 3 compact -->
+    <section class="activity-section">
+      <div class="section-label">Activité récente</div>
+      <div class="section-head">
+        <h2 class="section-title"><strong>3 nouvelles</strong> données cette semaine</h2>
+        <div class="section-meta"><a>tout voir →</a></div>
+      </div>
+
+      <div class="activity-grid">
+
+        <div class="activity-card">
+          <div class="activity-head">
+            <span class="activity-kind blood">Bilan sanguin</span>
+            <span class="activity-date">07 mar</span>
+          </div>
+          <div class="activity-title">23 marqueurs analysés</div>
+          <div class="activity-value-row">
+            <span class="activity-value">21</span>
+            <span class="activity-unit">optimaux · 2 à surveiller</span>
+          </div>
+          <div class="activity-delta down">HDL ↘ 3ᵉ cycle</div>
+        </div>
+
+        <div class="activity-card">
+          <div class="activity-head">
+            <span class="activity-kind vo2">VO₂max</span>
+            <span class="activity-date">01 mar</span>
+          </div>
+          <div class="activity-title">Record personnel atteint</div>
+          <div class="activity-value-row">
+            <span class="activity-value">52,0</span>
+            <span class="activity-unit">mL · kg⁻¹ · min⁻¹</span>
+          </div>
+          <div class="activity-delta up">+1,5 vs trimestre précédent</div>
+        </div>
+
+        <div class="activity-card">
+          <div class="activity-head">
+            <span class="activity-kind sleep">Récupération</span>
+            <span class="activity-date">28 fév</span>
+          </div>
+          <div class="activity-title">HRV en plateau haut</div>
+          <div class="activity-value-row">
+            <span class="activity-value">68</span>
+            <span class="activity-unit">ms · moyenne 14 j</span>
+          </div>
+          <div class="activity-delta up">+6 ms sur 90 jours</div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- COMPANION -->
+  <aside class="companion">
+    <div class="companion-head">
+      <div class="companion-eyebrow">Compagnon · à l'écoute</div>
+      <h3 class="companion-name">Interroge tes <strong>données</strong>.</h3>
+      <div class="companion-context">Contexte · Dashboard · 5 domaines chargés</div>
+    </div>
+
+    <div class="companion-stream">
+      <div class="msg-disclaimer">Outil éducatif · pas un avis médical</div>
+
+      <div class="msg-bot">
+        Bonjour Guillaume. Vue d'ensemble : tu es <strong>au-dessus de ta cohorte</strong> sur 4 des 5 domaines. Le sang est l'exception &mdash; HDL en baisse pour le 3ᵉ cycle consécutif.
+      </div>
+
+      <div class="msg-bot">
+        Si tu veux un seul focus pour ce trimestre, c'est <strong>celui-là</strong>. Le reste va dans la bonne direction tout seul.
+        <div class="msg-cite">Bilan 07 mars · Garmin Q1 · Oura 90 j</div>
+      </div>
+
+      <div class="msg-user">Par quoi commencer ?</div>
+
+      <div class="msg-bot">
+        Le levier le plus rapide pour le HDL chez un athlète d'endurance : <strong>oméga-3</strong> (2-4 g EPA+DHA/jour). Effet mesurable en 8-12 semaines. Ensuite : ajouter 1-2 séances HIIT par semaine, qui complètent ta base Zone 2.
+        <br><br>
+        Si tu veux activer le protocole guidé, je peux te suivre semaine par semaine.
+        <div class="msg-cite">Kraus 2002 · Mann 2014</div>
+      </div>
+    </div>
+
+    <div class="companion-suggest">
+      <button class="suggest-btn">Activer le protocole HDL</button>
+      <button class="suggest-btn">Comparer aux cyclistes amateurs</button>
+      <button class="suggest-btn">Planifier le prochain bilan</button>
+    </div>
+
+    <div class="companion-input">
+      <div class="input-wrap">
+        <textarea rows="2" placeholder="Pose une question…"></textarea>
+        <button class="input-send"><i class="ti ti-arrow-up"></i></button>
+      </div>
+    </div>
+
+    <div class="companion-foot">Pas de diagnostic · pas de prescription</div>
+  </aside>
+
+</div>
+
+</body>
+</html>

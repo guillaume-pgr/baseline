@@ -25,8 +25,8 @@ export default function DashboardPage() {
       <CanvasHead syncSources={data.syncSources} />
       <HeroStatement bioAge={data.bioAge} />
       <DomainsGrid domains={data.domains} cohortLabel={data.profile.cohortLabel} />
-      <FocusGrid focus={data.focus} />
-      <ActivityGrid activity={data.activity} />
+      <FocusGrid focus={data.focus as any} />
+      <ActivityGrid activity={data.activity as any} />
     </div>
   )
 }

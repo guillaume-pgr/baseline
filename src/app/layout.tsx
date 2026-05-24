@@ -3,7 +3,7 @@ import { manrope, jetbrainsMono } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Baseline — Performance & Santé",
+  title: "Lyvio — Performance & Santé",
   description: "Ton tableau de bord santé performance personnalisé.",
 };
 
