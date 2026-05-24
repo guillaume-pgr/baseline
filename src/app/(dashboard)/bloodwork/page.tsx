@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { IconUpload, IconDownload } from '@tabler/icons-react'
+import { usePersonaData } from '@/lib/context/PersonaContext'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 import EvolutionMultiLineChart from '@/components/detail/EvolutionMultiLineChart'
-import { bloodCategories, BILAN_DATES, type BloodMarker, type BloodCategory } from '@/data/bloodwork-data'
+import { type BloodMarker, type BloodCategory } from '@/data/bloodwork-data'
 
 // ─── Marker bar (gradient + cursor) ─────────────────────────────────────────
 function MarkerRow({ m }: { m: BloodMarker }) {
@@ -57,7 +58,7 @@ function MarkerRow({ m }: { m: BloodMarker }) {
 // Alt colors for multi-series: primary color + 3 softer biotech tones
 const MULTI_COLORS = ['#B5705A', '#7BA8B5', '#9CB380', '#9890B5']
 
-function CategoryCard({ cat }: { cat: BloodCategory }) {
+function CategoryCard({ cat, dates }: { cat: BloodCategory; dates: string[] }) {
   const chartSeries = cat.chartMarkerIds.map((markerId, i) => {
     const m = cat.markers.find(x => x.id === markerId)!
     const color = cat.chartMarkerIds.length > 1
@@ -101,7 +102,7 @@ function CategoryCard({ cat }: { cat: BloodCategory }) {
           id={cat.id}
           title={cat.chartTitle}
           series={chartSeries}
-          dates={Array.from(BILAN_DATES)}
+          dates={dates}
         />
       </div>
     </div>
@@ -110,16 +111,29 @@ function CategoryCard({ cat }: { cat: BloodCategory }) {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function BloodworkPage() {
+  const data = usePersonaData()
   const [filter, setFilter] = useState<string | null>(null)
 
-  const categories = filter ? bloodCategories.filter(c => c.id === filter) : bloodCategories
+  if (!data) {
+    return (
+      <div style={{ padding: '32px 56px 80px' }}>
+        <p style={{ color: 'var(--color-ink-3)', fontSize: 14 }}>
+          Aucune donnée disponible. Importe tes données réelles via le panneau de persona.
+        </p>
+      </div>
+    )
+  }
+
+  const categories = filter ? data.bloodwork.categories.filter(c => c.id === filter) : data.bloodwork.categories
+  const hero = data.bloodworkHero
+  const dates = data.bloodwork.dates
 
   return (
     <div style={{ padding: '32px 56px 80px' }}>
       <PageHeader
         section="Prises de sang"
         title={<>Prises de <strong style={{ fontWeight: 700 }}>sang</strong></>}
-        sub="5 bilans · 40 marqueurs · dernier : 07 mars 2026, Laboratoire des Ternes. Profil global dans la moyenne haute, mais lipides en dérive depuis 18 mois."
+        sub={`${hero.total} marqueurs · dernier : ${hero.bilanDate}.`}
         actions={
           <>
             <Btn><IconDownload size={14} />Exporter</Btn>
@@ -131,18 +145,13 @@ export default function BloodworkPage() {
       {/* Value hero */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, padding: '36px 40px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, marginBottom: 48, alignItems: 'center' }}>
         <div>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 14 }}>Bilan du 07 mars 2026</p>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 14 }}>Bilan du {hero.bilanDate}</p>
           <div style={{ fontSize: 92, fontWeight: 200, letterSpacing: '-0.05em', lineHeight: 0.9, color: 'var(--color-ink)', marginBottom: 8 }}>
-            21<span style={{ fontSize: 48, color: 'var(--color-ink-3)', fontWeight: 300 }}>/40</span>
+            {hero.optimal}<span style={{ fontSize: 48, color: 'var(--color-ink-3)', fontWeight: 300 }}>/{hero.total}</span>
           </div>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-ink-3)', letterSpacing: '0.04em', marginBottom: 18 }}>marqueurs dans la zone optimale</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Foie · optimal', ok: true },
-              { label: 'Reins · optimal', ok: true },
-              { label: 'Glycémie · 5,3% HbA1c', ok: true },
-              { label: 'Lipides · 3 à surveiller', ok: false },
-            ].map(p => (
+            {hero.pills.map(p => (
               <span key={p.label} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '5px 11px', borderRadius: 999,
@@ -155,10 +164,10 @@ export default function BloodworkPage() {
         </div>
 
         <CohortBand
-          percentile={62}
-          warn
+          percentile={hero.cohortPercentile}
+          warn={hero.cohortPercentile < 50}
           label="Score sang vs cohorte"
-          context={<>Cohorte <strong>hommes actifs 28–34</strong> · médiane <strong>50ᵉ</strong>. Tu es au-dessus — mais le score baisse de 4 points en 18 mois à cause du profil lipidique.</>}
+          context={<>Cohorte <strong>{data.profile.cohortLabel}</strong> · médiane <strong>50ᵉ</strong>.</>}
         />
       </div>
 
@@ -180,7 +189,7 @@ export default function BloodworkPage() {
           >
             Vue exhaustive
           </button>
-          {bloodCategories.map(cat => (
+          {data.bloodwork.categories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setFilter(cat.id === filter ? null : cat.id)}
@@ -200,7 +209,7 @@ export default function BloodworkPage() {
 
       {/* Categories */}
       {categories.map(cat => (
-        <CategoryCard key={cat.id} cat={cat} />
+        <CategoryCard key={cat.id} cat={cat} dates={dates} />
       ))}
     </div>
   )

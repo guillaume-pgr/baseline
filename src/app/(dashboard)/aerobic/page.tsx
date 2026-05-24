@@ -1,32 +1,32 @@
+'use client'
+
+import { usePersonaData } from '@/lib/context/PersonaContext'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 import { IconDownload } from '@tabler/icons-react'
 
 // ─── VO2 gauge — 270° horseshoe arc open at bottom ───────────────────────────
-// Center (140, 150), r=110. 270° arc: 135° → 45° clockwise in SVG (through top).
-// Start (62.22, 227.78) → end (217.78, 227.78). Opening gap faces downward.
-const VO2_VALUE = 52.0
-const C270 = 2 * Math.PI * 110 * 0.75           // 270° arc length ≈ 519.03 px
-const VO2_ACTIVE = ((VO2_VALUE - 20) / 60) * C270 // 52 on scale 20–80
-// Path: large-arc=1, sweep=1 (CW in SVG) → goes from lower-left, up through top, to lower-right
+const C270 = 2 * Math.PI * 110 * 0.75
 const ARC = 'M 62.22 227.78 A 110 110 0 1 1 217.78 227.78'
 
-function VO2Gauge() {
+function VO2Gauge({ vo2Value }: { vo2Value: number }) {
+  const VO2_ACTIVE = ((vo2Value - 20) / 60) * C270
+
   return (
     <svg viewBox="0 0 280 280" width={280} height={280}>
       {/* Track (full 270° arc) */}
       <path d={ARC} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={11} strokeLinecap="round" />
-      {/* Active arc — 52 on scale 20–80 */}
+      {/* Active arc */}
       <path d={ARC} fill="none" stroke="var(--color-aqua)" strokeWidth={11} strokeLinecap="round"
         strokeDasharray={`${VO2_ACTIVE.toFixed(2)} 10000`} />
-      {/* Scale end labels — just below arc endpoints */}
+      {/* Scale end labels */}
       <text x={62} y={249} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} fill="var(--color-ink-4)">20</text>
       <text x={218} y={249} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} fill="var(--color-ink-4)">80</text>
-      {/* Center content — stacked inside horseshoe */}
+      {/* Center content */}
       <text x={140} y={100} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} letterSpacing="0.16em" fill="var(--color-ink-4)">VO₂MAX</text>
-      <text x={140} y={162} textAnchor="middle" fontFamily="var(--font-sans)" fontSize={66} fontWeight="300" letterSpacing="-0.05em" fill="var(--color-ink)">52,0</text>
+      <text x={140} y={162} textAnchor="middle" fontFamily="var(--font-sans)" fontSize={66} fontWeight="300" letterSpacing="-0.05em" fill="var(--color-ink)">{vo2Value.toFixed(1)}</text>
       <text x={140} y={180} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} fill="var(--color-ink-3)">ml·kg⁻¹·min⁻¹</text>
-      {/* Pill — sits in the gap opening */}
+      {/* Pill */}
       <rect x={92} y={196} width={96} height={22} rx={11} fill="var(--color-aqua-soft)" />
       <text x={140} y={211} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={10} letterSpacing="0.06em" fill="var(--color-aqua)">Excellent</text>
     </svg>
@@ -34,21 +34,13 @@ function VO2Gauge() {
 }
 
 // ─── Zone table ───────────────────────────────────────────────────────────────
-const ZONES = [
-  { zone: 'Z1', name: 'Récupération', bpm: '< 114', color: '#A8C5CD', pct: 18 },
-  { zone: 'Z2', name: 'Endurance', bpm: '114–133', color: 'var(--color-aqua)', pct: 52 },
-  { zone: 'Z3', name: 'Tempo', bpm: '133–152', color: 'var(--color-lichen)', pct: 20 },
-  { zone: 'Z4', name: 'Seuil', bpm: '152–171', color: 'var(--color-amber)', pct: 8 },
-  { zone: 'Z5', name: 'VO₂max', bpm: '> 171', color: 'var(--color-rust)', pct: 2 },
-]
-
-function ZoneTable() {
+function ZoneTable({ zones }: { zones: Array<{ zone: string; name: string; bpm: string; color: string; pct: number }> }) {
   return (
     <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px' }}>
       <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 16 }}>
-        Zones cardio · 90 jours Garmin
+        Zones cardio · 90 jours
       </p>
-      {ZONES.map(z => (
+      {zones.map(z => (
         <div key={z.zone} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 90px 60px', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--color-line)' }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: z.color }}>{z.zone}</span>
           <div>
@@ -65,43 +57,36 @@ function ZoneTable() {
     </div>
   )
 }
-
-// ─── 90-day VO2 evolution (SVG area chart) ────────────────────────────────────
-const AEROBIC_HISTORY: [number, number, number, number, number] = [49.2, 50.1, 51.0, 51.6, 52.0]
-const AEROBIC_DATES = ['Jan 26', 'Fév 26', 'Mar 26', 'Avr 26', 'Mai 26']
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default function AerobicPage() {
   return (
     <div style={{ padding: '32px 56px 80px' }}>
       <PageHeader
         section="Capacité aérobie"
         title={<>Capacité <strong style={{ fontWeight: 700 }}>aérobie</strong></>}
-        sub="Données Garmin Forerunner 965 · dernière mesure : 18 mai 2026. VO₂max en progression constante (+2,8 pts en 5 mois). Top 5% cohorte athlètes."
+        sub={`Dernière mesure : ${aerobicData.historyDates[aerobicData.historyDates.length - 1]}.`}
         actions={<Btn><IconDownload size={14} />Exporter</Btn>}
       />
 
       {/* Hero: gauge + cohort */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, padding: '36px 40px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, marginBottom: 32, alignItems: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <VO2Gauge />
+          <VO2Gauge vo2Value={aerobicData.vo2Value} />
         </div>
         <CohortBand
-          percentile={88}
+          percentile={aerobicData.cohortPercentile}
           label="VO₂max vs cohorte"
-          context={<>Cohorte <strong>hommes actifs 28–34</strong> · médiane <strong>47 ml·kg⁻¹·min⁻¹</strong>. Tu dépasses 88% de la cohorte — niveau athlète confirmé.</>}
+          context={<>Cohorte <strong>{data.profile.cohortLabel}</strong> · médiane <strong>50ᵉ</strong>.</>}
         />
       </div>
 
       {/* Zone table */}
       <div style={{ marginBottom: 32 }}>
-        <ZoneTable />
+        <ZoneTable zones={aerobicData.zones} />
       </div>
 
       {/* Evolution */}
       <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px' }}>
         <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 16 }}>
-          Évolution VO₂max — 5 derniers mois
+          Évolution VO₂max — {aerobicData.historyDates.length} derniers mois
         </p>
         <svg viewBox="0 0 700 160" style={{ width: '100%' }}>
           {/* Area fill */}
@@ -111,35 +96,26 @@ export default function AerobicPage() {
               <stop offset="100%" stopColor="var(--color-aqua)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          {(() => {
-            const xs = [60, 185, 345, 510, 660]
-            const min = 46, max = 55, H = 120
-            const ys = AEROBIC_HISTORY.map(v => H - ((v - min) / (max - min)) * H * 0.8 + H * 0.1)
-            const pts = xs.map((x, i) => `${x},${ys[i]}`).join(' ')
-            const area = `${xs[0]},${H + 4} ${pts} ${xs[xs.length - 1]},${H + 4}`
-            return (
-              <g>
-                <polygon points={area} fill="url(#aqua-grad)" />
-                <polyline fill="none" stroke="var(--color-aqua)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" points={pts} />
-                {xs.map((x, i) => (
-                  <circle key={i} cx={x} cy={ys[i]} r={i === 4 ? 5 : 3.5}
-                    fill="var(--color-aqua)"
-                    stroke={i === 4 ? 'white' : 'var(--color-aqua)'}
-                    strokeWidth={i === 4 ? 2 : 0}
-                  />
-                ))}
-                {xs.map((x, i) => (
-                  <text key={`v${i}`} x={x} y={ys[i] - 10} fontFamily="var(--font-mono)" fontSize={9} fill="var(--color-ink-3)" textAnchor="middle">
-                    {AEROBIC_HISTORY[i].toFixed(1)}
-                  </text>
-                ))}
-              </g>
-            )
-          })()}
+          <g>
+            <polygon points={area} fill="url(#aqua-grad)" />
+            <polyline fill="none" stroke="var(--color-aqua)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" points={pts} />
+            {xs.map((x, i) => (
+              <circle key={i} cx={x} cy={ys[i]} r={i === 4 ? 5 : 3.5}
+                fill="var(--color-aqua)"
+                stroke={i === 4 ? 'white' : 'var(--color-aqua)'}
+                strokeWidth={i === 4 ? 2 : 0}
+              />
+            ))}
+            {xs.map((x, i) => (
+              <text key={`v${i}`} x={x} y={ys[i] - 10} fontFamily="var(--font-mono)" fontSize={9} fill="var(--color-ink-3)" textAnchor="middle">
+                {aerobicData.history[i].toFixed(1)}
+              </text>
+            ))}
+          </g>
           {/* X labels */}
           <g fontFamily="var(--font-mono)" fontSize={9} fill="#A8A8A8">
-            {[60, 185, 345, 510, 660].map((x, i) => (
-              <text key={i} x={x} y={150} textAnchor="middle">{AEROBIC_DATES[i]}</text>
+            {xs.map((x, i) => (
+              <text key={i} x={x} y={150} textAnchor="middle">{aerobicData.historyDates[i]}</text>
             ))}
           </g>
         </svg>

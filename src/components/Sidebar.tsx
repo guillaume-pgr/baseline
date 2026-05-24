@@ -1,0 +1,147 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import {
+  IconLayoutDashboard,
+  IconTestPipe,
+  IconScale,
+  IconRun,
+  IconMoon,
+  IconMicroscope,
+  IconPlugConnected,
+  IconDna,
+  IconApple,
+} from '@tabler/icons-react'
+import PersonaSwitcher from './sidebar/PersonaSwitcher'
+
+type NavItem = {
+  href: string
+  label: string
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>
+  soon?: boolean
+}
+
+type NavSection = {
+  label: string
+  items: NavItem[]
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    label: 'Overview',
+    items: [
+      { href: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
+    ],
+  },
+  {
+    label: 'Signaux',
+    items: [
+      { href: '/bloodwork',    label: 'Prises de sang',    icon: IconTestPipe },
+      { href: '/composition',  label: 'Composition',       icon: IconScale },
+      { href: '/aerobic',      label: 'Capacité aérobie',  icon: IconRun },
+      { href: '/sleep',        label: 'Sommeil & HRV',     icon: IconMoon },
+      { href: '/microbiome',   label: 'Microbiote',        icon: IconMicroscope },
+    ],
+  },
+  {
+    label: 'Sources',
+    items: [
+      { href: '/connections',  label: 'Appareils connectés', icon: IconPlugConnected },
+      { href: '#',             label: 'Génétique',            icon: IconDna,   soon: true },
+      { href: '#',             label: 'Nutrition',            icon: IconApple, soon: true },
+    ],
+  },
+]
+
+export default function Sidebar() {
+  const pathname = usePathname()
+
+  return (
+    <aside
+      className="flex flex-col h-screen shrink-0"
+      style={{
+        width: 240,
+        backgroundColor: 'var(--color-surface)',
+        borderRight: '1px solid var(--color-line)',
+      }}
+    >
+      {/* Persona Switcher */}
+      <div style={{ padding: '14px 14px', borderBottom: '1px solid var(--color-line)' }}>
+        <PersonaSwitcher />
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex flex-col gap-4 p-3 flex-1 overflow-y-auto">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label}>
+            <p
+              className="px-3 mb-1 font-mono text-xs uppercase tracking-widest"
+              style={{ color: 'var(--color-ink-4)' }}
+            >
+              {section.label}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {section.items.map(({ href, label, icon: Icon, soon }) => {
+                const active = pathname === href
+                const dimmed = soon === true
+
+                if (dimmed) {
+                  return (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between px-3 rounded-lg"
+                      style={{ height: 38 }}
+                    >
+                      <div className="flex items-center gap-3" style={{ color: 'var(--color-ink-5)' }}>
+                        <Icon size={17} strokeWidth={1.8} color="var(--color-ink-5)" />
+                        <span className="text-sm">{label}</span>
+                      </div>
+                      <span
+                        className="font-mono text-xs px-1.5 py-0.5 rounded"
+                        style={{
+                          color: 'var(--color-ink-5)',
+                          backgroundColor: 'var(--color-surface-2)',
+                          fontSize: 10,
+                        }}
+                      >
+                        bientôt
+                      </span>
+                    </div>
+                  )
+                }
+
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="flex items-center gap-3 px-3 rounded-lg transition-colors"
+                    style={{
+                      height: 38,
+                      color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
+                      backgroundColor: active ? 'var(--color-surface-2)' : 'transparent',
+                      fontWeight: active ? 600 : 400,
+                    }}
+                  >
+                    <Icon size={17} strokeWidth={1.8} />
+                    <span className="text-sm">{label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div
+        className="px-5 pb-5"
+        style={{ borderTop: '1px solid var(--color-line)', paddingTop: 14 }}
+      >
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--color-ink-4)' }}>
+          Outil éducatif. Ne remplace pas un avis médical.
+        </p>
+      </div>
+    </aside>
+  )
+}

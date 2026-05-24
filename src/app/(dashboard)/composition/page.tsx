@@ -1,6 +1,7 @@
 'use client'
 
 import { IconDownload } from '@tabler/icons-react'
+import { usePersonaData } from '@/lib/context/PersonaContext'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 
@@ -11,7 +12,7 @@ const BODY_PATH = `M 100 12 C 88 12 78 22 78 34 C 78 46 88 56 100 56 C 112 56 12
 const TX = 90, TY = 15
 
 // ─── Body silhouette — single SVG with embedded annotations ──────────────────
-function BodySilhouette() {
+function BodySilhouette({ annotations }: { annotations: { os: string; gras: string; muscle: string; eau: string } }) {
   return (
     <svg viewBox="0 0 380 400" style={{ width: '100%', display: 'block' }}>
       <defs>
@@ -39,37 +40,38 @@ function BodySilhouette() {
       {/* OS — head center y≈49 (34+TY). Head left edge: x=78+TX=168. */}
       <line x1={78} y1={49} x2={165} y2={49} stroke="var(--color-ink-4)" strokeWidth={0.5} />
       <text x={75} y={43} textAnchor="end" fontFamily="var(--font-mono)" fontSize={9} letterSpacing="0.08em" fill="var(--color-ink-4)">OS</text>
-      <text x={75} y={57} textAnchor="end" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight="600" fill="var(--color-ink)">3,2 kg</text>
+      <text x={75} y={57} textAnchor="end" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight="600" fill="var(--color-ink)">{annotations.os}</text>
 
       {/* GRAS — upper torso y≈125 (110+TY). Torso left at original y=110: x≈37 → SVG x=127. */}
       <line x1={78} y1={125} x2={124} y2={125} stroke="var(--color-ink-4)" strokeWidth={0.5} />
       <text x={75} y={119} textAnchor="end" fontFamily="var(--font-mono)" fontSize={9} letterSpacing="0.08em" fill="var(--color-ink-4)">GRAS</text>
-      <text x={75} y={133} textAnchor="end" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight="600" fill="var(--color-ink)">15,2%</text>
+      <text x={75} y={133} textAnchor="end" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight="600" fill="var(--color-ink)">{annotations.gras}</text>
 
       {/* ── Right annotations (MUSCLE, EAU) ── */}
 
       {/* MUSCLE — upper-leg y≈210 (195+TY). Right outer at original y=195: x≈151 → SVG x=241. */}
       <line x1={244} y1={210} x2={302} y2={210} stroke="var(--color-ink-4)" strokeWidth={0.5} />
       <text x={305} y={204} textAnchor="start" fontFamily="var(--font-mono)" fontSize={9} letterSpacing="0.08em" fill="var(--color-ink-4)">MUSCLE</text>
-      <text x={305} y={218} textAnchor="start" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight="600" fill="var(--color-ink)">58,1 kg</text>
+      <text x={305} y={218} textAnchor="start" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight="600" fill="var(--color-ink)">{annotations.muscle}</text>
 
       {/* EAU — lower-leg y≈305 (290+TY). Right outer at original y=290: x≈158 → SVG x=248. */}
       <line x1={251} y1={305} x2={302} y2={305} stroke="var(--color-ink-4)" strokeWidth={0.5} />
       <text x={305} y={299} textAnchor="start" fontFamily="var(--font-mono)" fontSize={9} letterSpacing="0.08em" fill="var(--color-ink-4)">EAU</text>
-      <text x={305} y={313} textAnchor="start" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight="600" fill="var(--color-ink)">61,2%</text>
+      <text x={305} y={313} textAnchor="start" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight="600" fill="var(--color-ink)">{annotations.eau}</text>
     </svg>
   )
 }
 
 // ─── Stat cards ────────────────────────────────────────────────────────────────
-const STATS = [
-  { label: 'Poids', value: '73,2', unit: 'kg', sub: '−0,8 kg vs janv.', ok: true },
-  { label: 'Masse grasse', value: '15,2', unit: '%', sub: '11,1 kg · objectif <13%', ok: false },
-  { label: 'Masse maigre', value: '58,1', unit: 'kg', sub: '+1,4 kg en 6 mois', ok: true },
-  { label: 'MB', value: '1 820', unit: 'kcal', sub: 'Métabolisme basal', ok: true },
-]
+type Stat = {
+  label: string
+  value: string
+  unit: string
+  sub: string
+  ok: boolean
+}
 
-function StatCard({ label, value, unit, sub, ok }: typeof STATS[0]) {
+function StatCard({ label, value, unit, sub, ok }: Stat) {
   return (
     <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 14, padding: '16px 20px' }}>
       <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 8 }}>{label}</p>
@@ -82,30 +84,23 @@ function StatCard({ label, value, unit, sub, ok }: typeof STATS[0]) {
   )
 }
 
-// ─── Dual-curve evolution chart — Muscle % + Gras % over 6 Withings measurements ─
-const EVOL_DATES = ['Déc 25', 'Jan 26', 'Fév 26', 'Mar 26', 'Avr 26', 'Mai 26']
-const MUSCLE_PCT = [49, 50, 50, 51, 51, 52]
-const FAT_PCT    = [16, 15, 15, 14, 14, 13]
+function CompositionEvolutionChart({ dates, musclePct, fatPct, evolution_dates }: { dates: string[]; musclePct: number[]; fatPct: number[]; evolution_dates: string[] }) {
+  const EVOL_W = 700, EVOL_H = 120, EVOL_TOTAL_H = 168
+  const Y_MIN = 11, Y_MAX = 54
 
-// Y scale: [11, 54] with 10% padding each side → visible range amplified
-const Y_MIN = 11, Y_MAX = 54
-const EVOL_W = 700, EVOL_H = 120, EVOL_TOTAL_H = 168
+  function toY(v: number): number {
+    return EVOL_H - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * EVOL_H * 0.8 + EVOL_H * 0.1
+  }
 
-function toY(v: number): number {
-  return EVOL_H - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * EVOL_H * 0.8 + EVOL_H * 0.1
-}
-
-function CompositionEvolutionChart() {
-  const n = EVOL_DATES.length
+  const n = evolution_dates.length
   const step = (EVOL_W - 80) / (n - 1)
-  const xs = EVOL_DATES.map((_, i) => 40 + i * step)
-  const muscleYs = MUSCLE_PCT.map(toY)
-  const fatYs    = FAT_PCT.map(toY)
+  const xs = evolution_dates.map((_, i) => 40 + i * step)
+  const muscleYs = musclePct.map(toY)
+  const fatYs    = fatPct.map(toY)
 
   const musclePts = xs.map((x, i) => `${x},${muscleYs[i]}`).join(' ')
   const fatPts    = xs.map((x, i) => `${x},${fatYs[i]}`).join(' ')
 
-  // Area paths: curve down to lowest visible point + breathing room
   const muscleBottom = Math.max(...muscleYs) + 8
   const fatBottom    = Math.max(...fatYs) + 8
   const muscleArea = `M ${xs[0]},${muscleBottom} ` + xs.map((x, i) => `L ${x},${muscleYs[i]}`).join(' ') + ` L ${xs[n - 1]},${muscleBottom} Z`
@@ -116,10 +111,10 @@ function CompositionEvolutionChart() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
         <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.015em' }}>
-          Évolution des proportions — 6 mesures Withings
+          Évolution des proportions — 6 mesures
         </span>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-ink-4)', letterSpacing: '0.06em' }}>
-          Déc 25 → Mai 26
+          {evolution_dates[0]} → {evolution_dates[evolution_dates.length - 1]}
         </span>
       </div>
       {/* Legend */}
@@ -165,7 +160,7 @@ function CompositionEvolutionChart() {
             />
             <text x={x} y={muscleYs[i] - 7} textAnchor="middle"
               fontFamily="var(--font-mono)" fontSize={9} fill="#5C7A4A">
-              {MUSCLE_PCT[i]}%
+              {musclePct[i]}%
             </text>
           </g>
         ))}
@@ -181,13 +176,13 @@ function CompositionEvolutionChart() {
             />
             <text x={x} y={fatYs[i] + 16} textAnchor="middle"
               fontFamily="var(--font-mono)" fontSize={9} fill="var(--color-rust)">
-              {FAT_PCT[i]}%
+              {fatPct[i]}%
             </text>
           </g>
         ))}
         {/* X labels */}
         <g fontFamily="var(--font-mono)" fontSize={9} fill="#A8A8A8">
-          {EVOL_DATES.map((d, i) => (
+          {evolution_dates.map((d, i) => (
             <text key={i} x={xs[i]} y={EVOL_TOTAL_H - 4} textAnchor="middle">{d}</text>
           ))}
         </g>
@@ -198,12 +193,26 @@ function CompositionEvolutionChart() {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default function CompositionPage() {
+  const data = usePersonaData()
+
+  if (!data) {
+    return (
+      <div style={{ padding: '32px 56px 80px' }}>
+        <p style={{ color: 'var(--color-ink-3)', fontSize: 14 }}>
+          Aucune donnée disponible. Importe tes données réelles via le panneau de persona.
+        </p>
+      </div>
+    )
+  }
+
+  const compositionData = data.compositionData
+
   return (
     <div style={{ padding: '32px 56px 80px' }}>
       <PageHeader
         section="Composition corporelle"
         title={<>Composition <strong style={{ fontWeight: 700 }}>corporelle</strong></>}
-        sub="6 mesures Withings · dernier bilan : 20 mai 2026. Masse grasse en baisse régulière, masse maigre progresse. Objectif <13% MG d'ici septembre."
+        sub={`Dernier bilan : ${compositionData.bilanDate}.`}
         actions={<Btn><IconDownload size={14} />Exporter</Btn>}
       />
 
@@ -212,9 +221,9 @@ export default function CompositionPage() {
         {/* Silhouette panel */}
         <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '32px 36px 40px' }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 28, textAlign: 'center' }}>
-            Bilan du 20 mai 2026
+            Bilan du {compositionData.bilanDate}
           </p>
-          <BodySilhouette />
+          <BodySilhouette annotations={compositionData.bodyAnnotations} />
           {/* Legend */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 28 }}>
             {[
@@ -234,19 +243,24 @@ export default function CompositionPage() {
         {/* Stats + cohort */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {STATS.map(s => <StatCard key={s.label} {...s} />)}
+            {compositionData.stats.map(s => <StatCard key={s.label} {...s} />)}
           </div>
           <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px' }}>
             <CohortBand
-              percentile={78}
+              percentile={compositionData.cohortPercentile}
               label="Score composition vs cohorte"
-              context={<>Cohorte <strong>hommes actifs 28–34</strong> · médiane <strong>50ᵉ</strong>. Très bonne composition — masse grasse légèrement au-dessus de l'optimum athlétique.</>}
+              context={<>Cohorte <strong>{data.profile.cohortLabel}</strong> · médiane <strong>50ᵉ</strong>.</>}
             />
           </div>
         </div>
       </div>
 
-      <CompositionEvolutionChart />
+      <CompositionEvolutionChart
+        dates={compositionData.dates}
+        musclePct={compositionData.evolution.musclePct}
+        fatPct={compositionData.evolution.fatPct}
+        evolution_dates={compositionData.evolution.dates}
+      />
     </div>
   )
 }
