@@ -1,6 +1,7 @@
 'use client'
 
-import { usePersonaData } from '@/lib/context/PersonaContext'
+import { usePersonaData, usePersonaContext } from '@/lib/context/PersonaContext'
+import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 import { IconDownload } from '@tabler/icons-react'
@@ -81,13 +82,26 @@ function BacteriaRow({ b }: { b: Bacterium }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function MicrobiomePage() {
   const data = usePersonaData()
+  const { switchDemo } = usePersonaContext()
 
   if (!data) {
     return (
       <div style={{ padding: '32px 56px 80px' }}>
-        <p style={{ color: 'var(--color-ink-3)', fontSize: 14 }}>
-          Aucune donnée disponible. Importe tes données réelles via le panneau de persona.
-        </p>
+        <EmptyState
+          icon="bacteria"
+          iconColor="amber"
+          title="Pas encore d'analyse microbiote."
+          body="Importe ton kit Viome, Luxia ou autre. Lyvio en extrait la diversité, les phyla et les espèces clés."
+          primaryAction={{
+            label: 'Importer un PDF',
+            icon: 'upload',
+            onClick: () => console.log('TODO: Phase 6 - Import PDF modal'),
+          }}
+          secondaryAction={{
+            label: 'Voir le mode démo',
+            onClick: () => switchDemo('guillaume'),
+          }}
+        />
       </div>
     )
   }

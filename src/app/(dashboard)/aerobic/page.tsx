@@ -1,6 +1,7 @@
 'use client'
 
-import { usePersonaData } from '@/lib/context/PersonaContext'
+import { usePersonaData, usePersonaContext } from '@/lib/context/PersonaContext'
+import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 import { IconDownload } from '@tabler/icons-react'
@@ -61,13 +62,26 @@ function ZoneTable({ zones }: { zones: Array<{ zone: string; name: string; bpm: 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AerobicPage() {
   const data = usePersonaData()
+  const { switchDemo } = usePersonaContext()
 
   if (!data) {
     return (
       <div style={{ padding: '32px 56px 80px' }}>
-        <p style={{ color: 'var(--color-ink-3)', fontSize: 14 }}>
-          Aucune donnée disponible. Importe tes données réelles via le panneau de persona.
-        </p>
+        <EmptyState
+          icon="activity"
+          iconColor="aqua"
+          title="Pas encore de mesure VO₂max."
+          body="Connecte ta montre Garmin, Apple Watch ou Polar. La VO₂max est le meilleur prédicteur de longévité."
+          primaryAction={{
+            label: 'Connecter ma montre',
+            icon: 'plug-connected',
+            onClick: () => console.log('TODO: Phase 7 - OAuth watch'),
+          }}
+          secondaryAction={{
+            label: 'Voir le mode démo',
+            onClick: () => switchDemo('guillaume'),
+          }}
+        />
       </div>
     )
   }

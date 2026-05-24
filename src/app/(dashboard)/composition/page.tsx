@@ -1,7 +1,8 @@
 'use client'
 
 import { IconDownload } from '@tabler/icons-react'
-import { usePersonaData } from '@/lib/context/PersonaContext'
+import { usePersonaData, usePersonaContext } from '@/lib/context/PersonaContext'
+import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 
@@ -194,13 +195,26 @@ function CompositionEvolutionChart({ musclePct, fatPct, evolution_dates }: { mus
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default function CompositionPage() {
   const data = usePersonaData()
+  const { switchDemo } = usePersonaContext()
 
   if (!data) {
     return (
       <div style={{ padding: '32px 56px 80px' }}>
-        <p style={{ color: 'var(--color-ink-3)', fontSize: 14 }}>
-          Aucune donnée disponible. Importe tes données réelles via le panneau de persona.
-        </p>
+        <EmptyState
+          icon="stretching"
+          iconColor="lichen"
+          title="Connecte ta balance ou ajoute une mesure."
+          body="Withings, Garmin Index, ou saisie manuelle. Lyvio suit muscle, gras, eau et hydratation au fil du temps."
+          primaryAction={{
+            label: 'Connecter une balance',
+            icon: 'plug-connected',
+            onClick: () => console.log('TODO: Phase 7 - OAuth balance'),
+          }}
+          secondaryAction={{
+            label: 'Voir le mode démo',
+            onClick: () => switchDemo('guillaume'),
+          }}
+        />
       </div>
     )
   }
