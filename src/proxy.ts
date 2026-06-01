@@ -7,11 +7,17 @@ export default async function proxy(request: NextRequest) {
 
   console.log('[proxy] pathname:', pathname)
 
-  // Public routes - always allow
+  // Public routes - always allow (including demo mode dashboard access)
   const isPublicRoute =
     pathname === '/' ||
     pathname.startsWith('/auth/') ||
-    pathname.startsWith('/api/auth/')
+    pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/bloodwork') ||
+    pathname.startsWith('/composition') ||
+    pathname.startsWith('/aerobic') ||
+    pathname.startsWith('/sleep') ||
+    pathname.startsWith('/microbiome')
 
   if (isPublicRoute) {
     console.log('[proxy] public route, allowing')
