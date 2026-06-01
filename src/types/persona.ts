@@ -1,5 +1,5 @@
 export type PersonaMode = "demo" | "real"
-export type DemoPersonaId = "guillaume" | "raphaelle"
+export type DemoPersonaId = "john" | "jane"
 
 export type Persona = {
   id: string

@@ -3,10 +3,13 @@
 import { useState } from 'react'
 import { IconUpload, IconDownload } from '@tabler/icons-react'
 import { usePersonaData, usePersonaContext } from '@/lib/context/PersonaContext'
+import { useSession } from '@/lib/context/SessionContext'
+import { useRealBloodPanels } from '@/lib/context/useRealBloodPanels'
 import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 import EvolutionMultiLineChart from '@/components/detail/EvolutionMultiLineChart'
+import ImportModal from '@/components/ImportModal'
 import { type BloodMarker, type BloodCategory } from '@/data/bloodwork-data'
 
 // ─── Marker bar (gradient + cursor) ─────────────────────────────────────────
@@ -113,25 +116,255 @@ function CategoryCard({ cat, dates }: { cat: BloodCategory; dates: string[] }) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function BloodworkPage() {
   const data = usePersonaData()
-  const { switchDemo } = usePersonaContext()
+  const { state } = usePersonaContext()
+  const { profile } = useSession()
+  const { panels: realPanels, isLoading: realLoading } = useRealBloodPanels()
   const [filter, setFilter] = useState<string | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
+  const handleImportSuccess = () => {
+    setRefreshKey(k => k + 1)
+  }
+
+  // Check if user is in real mode with no data
+  const isRealMode = state.mode === 'real' && profile
+  const hasRealData = realPanels && realPanels.length > 0
+
+  console.log('[bloodwork] render:', {
+    isRealMode,
+    hasRealData,
+    realLoading,
+    realPanelsLength: realPanels?.length,
+    stateMode: state.mode,
+    hasProfile: !!profile,
+  })
+
+  if (isRealMode && !hasRealData && realLoading) {
+    return (
+      <div style={{ padding: '32px 56px 80px' }}>
+        <div style={{ backgroundColor: 'var(--color-surface)', padding: 20, borderRadius: 8, marginBottom: 20 }}>
+          <p style={{ fontSize: 12 }}>🔄 Chargement des données...</p>
+          <p style={{ fontSize: 11, color: 'var(--color-ink-4)', marginTop: 8 }}>
+            [DEBUG] realLoading={realLoading.toString()}, realPanelsLength={realPanels?.length}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isRealMode && !hasRealData) {
+    return (
+      <div style={{ padding: '32px 56px 80px' }}>
+        <div style={{ backgroundColor: 'var(--color-surface)', padding: 20, borderRadius: 8, marginBottom: 20 }}>
+          <p style={{ fontSize: 12, color: 'var(--color-rust)' }}>❌ Pas de données</p>
+          <p style={{ fontSize: 11, color: 'var(--color-ink-4)', marginTop: 8 }}>
+            [DEBUG] isRealMode={isRealMode.toString()}, hasRealData={hasRealData.toString()}, realPanelsLength={realPanels?.length}
+          </p>
+        </div>
+        <ImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          onSuccess={handleImportSuccess}
+        />
+        <EmptyState
+          icon="droplet"
+          iconColor="rust"
+          title="Pas encore de prise de sang importée."
+          body="Importe un fichier CSV avec tes marqueurs. Lyvio en extrait tous les marqueurs automatiquement et te dit où tu te situes vs ta cohorte."
+          primaryAction={{
+            label: 'Importer un CSV',
+            icon: 'upload',
+            onClick: () => setImportOpen(true),
+          }}
+          secondaryAction={{
+            label: 'Voir le mode démo',
+            onClick: () => {},
+          }}
+        />
+      </div>
+    )
+  }
+
+  // Display real data if available
+  if (isRealMode && hasRealData) {
+    const latestPanel = realPanels[0]
+    return (
+      <div style={{ padding: '32px 56px 80px' }} key={refreshKey}>
+        <div style={{ backgroundColor: 'var(--color-lichen-soft)', padding: 20, borderRadius: 8, marginBottom: 20 }}>
+          <p style={{ fontSize: 12, color: '#5C7A4A' }}>✅ Données trouvées!</p>
+          <p style={{ fontSize: 11, color: '#5C7A4A', marginTop: 8 }}>
+            [DEBUG] {realPanels.length} panel(s), {latestPanel.markers.length} marqueurs
+          </p>
+        </div>
+        <ImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          onSuccess={handleImportSuccess}
+        />
+        <PageHeader
+          section="Prises de sang"
+          title={<>Prises de <strong style={{ fontWeight: 700 }}>sang</strong></>}
+          sub={`${latestPanel.markers.length} marqueurs · dernier : ${new Date(latestPanel.panel.panel_date).toLocaleDateString('fr-FR')}.`}
+          actions={
+            <>
+              <Btn><IconDownload size={14} />Exporter</Btn>
+              <button
+                onClick={() => setImportOpen(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  backgroundColor: 'black',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 500,
+                }}
+              >
+                <IconUpload size={14} />
+                Importer un CSV
+              </button>
+            </>
+          }
+        />
+
+        {/* Hero section */}
+        <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px', marginBottom: 24 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Dernier bilan</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+            <div>
+              <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 8 }}>
+                {new Date(latestPanel.panel.panel_date).toLocaleDateString('fr-FR')}
+              </p>
+              <p style={{ fontSize: 32, fontWeight: 200, marginBottom: 12 }}>
+                {latestPanel.markers.length} marqueurs
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {latestPanel.markers.slice(0, 5).map(m => (
+                  <div
+                    key={m.id}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      backgroundColor: 'var(--color-surface-2)',
+                      fontSize: 12,
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{m.marker_code}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, marginLeft: 4 }}>{m.value} {m.unit}</span>
+                  </div>
+                ))}
+                {latestPanel.markers.length > 5 && (
+                  <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--color-ink-3)' }}>
+                    +{latestPanel.markers.length - 5} autres
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 48, fontWeight: 200, margin: 0 }}>
+                  {latestPanel.markers.filter(m => m.status === 'optimal').length}/{latestPanel.markers.length}
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--color-ink-3)', marginTop: 8 }}>
+                  optimal
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Markers table */}
+        <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Tous les marqueurs</div>
+          <div>
+            {latestPanel.markers.map(marker => (
+              <div
+                key={marker.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '150px 1fr 120px 100px',
+                  gap: 20,
+                  alignItems: 'center',
+                  padding: '12px 0',
+                  borderBottom: '1px solid var(--color-line)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{marker.marker_name}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', marginTop: 2 }}>
+                    {marker.marker_code}
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-ink-3)' }}>
+                  {marker.ref_min && marker.ref_max && `Ref: ${marker.ref_min} - ${marker.ref_max}`}
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 500 }}>
+                    {marker.value}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--color-ink-4)', marginTop: 2 }}>
+                    {marker.unit}
+                  </div>
+                </div>
+                <div>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      padding: '4px 8px',
+                      borderRadius: 4,
+                      fontSize: 10,
+                      backgroundColor:
+                        marker.status === 'optimal'
+                          ? 'var(--color-lichen-soft)'
+                          : marker.status === 'warning'
+                            ? 'var(--color-amber-soft)'
+                            : 'var(--color-rust-soft)',
+                      color:
+                        marker.status === 'optimal'
+                          ? '#5C7A4A'
+                          : marker.status === 'warning'
+                            ? '#8B5A00'
+                            : 'var(--color-rust)',
+                    }}
+                  >
+                    {marker.status || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Display demo data (original behavior)
   if (!data) {
     return (
       <div style={{ padding: '32px 56px 80px' }}>
+        <ImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          onSuccess={handleImportSuccess}
+        />
         <EmptyState
           icon="droplet"
           iconColor="rust"
           title="Pas encore de prise de sang importée."
           body="Glisse un PDF de bilan sanguin. Lyvio en extrait tous les marqueurs automatiquement et te dit où tu te situes vs ta cohorte."
           primaryAction={{
-            label: 'Importer un PDF',
+            label: 'Importer un CSV',
             icon: 'upload',
-            onClick: () => console.log('TODO: Phase 6 - Import PDF modal'),
+            onClick: () => setImportOpen(true),
           }}
           secondaryAction={{
             label: 'Voir le mode démo',
-            onClick: () => switchDemo('guillaume'),
+            onClick: () => {},
           }}
         />
       </div>
@@ -143,7 +376,12 @@ export default function BloodworkPage() {
   const dates = Array.from(data.bloodwork.dates)
 
   return (
-    <div style={{ padding: '32px 56px 80px' }}>
+    <div style={{ padding: '32px 56px 80px' }} key={refreshKey}>
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={handleImportSuccess}
+      />
       <PageHeader
         section="Prises de sang"
         title={<>Prises de <strong style={{ fontWeight: 700 }}>sang</strong></>}
@@ -151,7 +389,25 @@ export default function BloodworkPage() {
         actions={
           <>
             <Btn><IconDownload size={14} />Exporter</Btn>
-            <Btn primary><IconUpload size={14} />Importer un PDF</Btn>
+            <button
+              onClick={() => setImportOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 16px',
+                backgroundColor: 'black',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              <IconUpload size={14} />
+              Importer un PDF
+            </button>
           </>
         }
       />

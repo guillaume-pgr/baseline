@@ -6,9 +6,9 @@ import {
   IconMoon,
   IconMicroscope,
 } from '@tabler/icons-react'
-import { guillaume } from '@/data/seed-guillaume'
+import { john } from '@/data/seed-john'
 
-type Domain = typeof guillaume.domains[number]
+type Domain = typeof john.domains[number]
 type Color = Domain['color']
 type TrendDir = Domain['trend']['dir']
 
@@ -32,13 +32,11 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: stri
 
 const TREND_PREFIX: Record<TrendDir, string> = {
   up:   '↗ ',
-  down: '↘ ',
   flat: '→ ',
 }
 
 const TREND_COLOR: Record<TrendDir, string> = {
   up:   'var(--color-lichen)',
-  down: 'var(--color-rust)',
   flat: 'var(--color-ink-4)',
 }
 

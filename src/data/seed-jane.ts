@@ -1,24 +1,24 @@
-// Persona seed — Raphaëlle Besseyre des Horts · 28 ans · F
-// Cohorte : Femmes actives 25-32 (n=2 140) · Âge bio 24,8 ans
-export const raphaelle = {
+// Persona seed — Jane Doe · 30 ans · F
+// Cohorte : Femmes actives 28-34 (n=2 140) · Âge bio 26 ans
+export const jane = {
   profile: {
-    name: 'Raphaëlle Besseyre des Horts',
-    firstName: 'Raphaëlle',
-    lastName: 'Besseyre des Horts',
-    displayName: 'Raphaëlle B.',
-    age: 28,
+    name: 'Jane Doe',
+    firstName: 'Jane',
+    lastName: 'Doe',
+    displayName: 'Jane D.',
+    age: 30,
     height: 166,
     weight: 60,
     sex: 'F' as const,
     persona: 'Active',
-    cohortLabel: 'F 25–32',
-    cohortDetail: 'Femmes actives 25–32 · n=2 140',
+    cohortLabel: 'F 28–34',
+    cohortDetail: 'Femmes actives 28–34 · n=2 140',
   },
 
   bioAge: {
-    value: 24.8,
-    chronoAge: 28,
-    delta: -3.2,
+    value: 26,
+    chronoAge: 30,
+    delta: -4,
   },
 
   domains: [
@@ -26,22 +26,22 @@ export const raphaelle = {
       id: 'bloodwork',
       name: 'Sang',
       color: 'amber' as const,
-      score: 71,
-      percentile: 71,
-      warn: true,
-      sub: 'Ferritine basse-normale, à surveiller selon cycle',
-      trend: { label: '90 jours', value: '+2 pts', dir: 'up' as const },
+      score: 82,
+      percentile: 82,
+      warn: false,
+      sub: 'Marqueurs excellents',
+      trend: { label: '90 jours', value: '+3 pts', dir: 'up' as const },
       href: '/bloodwork',
     },
     {
       id: 'composition',
       name: 'Composition',
       color: 'lichen' as const,
-      score: 82,
-      percentile: 82,
+      score: 85,
+      percentile: 85,
       warn: false,
-      sub: '21,4 % masse grasse · 42,8 kg maigre',
-      trend: { label: '90 jours', value: '+4 pts', dir: 'up' as const },
+      sub: '21 % masse grasse · 47 kg maigre',
+      trend: { label: '90 jours', value: '+2 pts', dir: 'up' as const },
       href: '/composition',
     },
     {

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import {
   IconLayoutDashboard,
@@ -14,6 +15,7 @@ import {
   IconApple,
 } from '@tabler/icons-react'
 import PersonaSwitcher from './sidebar/PersonaSwitcher'
+import { useSession } from '@/lib/context/SessionContext'
 
 type NavItem = {
   href: string
@@ -56,6 +58,13 @@ const NAV_SECTIONS: NavSection[] = [
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, signOut } = useSession()
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/auth/signin')
+  }
 
   return (
     <aside
@@ -138,6 +147,32 @@ export default function Sidebar() {
         className="px-5 pb-5"
         style={{ borderTop: '1px solid var(--color-line)', paddingTop: 14 }}
       >
+        {user && (
+          <div className="mb-4">
+            <p className="font-mono text-[10px] text-ink-4 mb-2" style={{ color: 'var(--color-ink-4)' }}>
+              {user.email}
+            </p>
+            <button
+              onClick={handleSignOut}
+              className="font-mono text-[10px] text-ink-3 hover:text-ink hover:underline transition"
+              style={{
+                color: 'var(--color-ink-3)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.color = 'var(--color-ink)'
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.color = 'var(--color-ink-3)'
+              }}
+            >
+              Déconnexion
+            </button>
+          </div>
+        )}
         <p className="text-xs leading-relaxed" style={{ color: 'var(--color-ink-4)' }}>
           Outil éducatif. Ne remplace pas un avis médical.
         </p>

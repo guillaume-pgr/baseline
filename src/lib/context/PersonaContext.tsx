@@ -2,10 +2,12 @@
 
 import { createContext, useContext, useState, useEffect } from 'react'
 import type { PersonaMode, DemoPersonaId } from '@/types/persona'
-import { guillaume } from '@/data/seed-guillaume'
-import { raphaelle } from '@/data/seed-raphaelle'
-import { bloodCategories as guillaumeBloodCategories, BILAN_DATES } from '@/data/bloodwork-data'
-import { bloodCategoriesR, BILAN_DATES_R } from '@/data/bloodwork-raphaelle'
+import { john } from '@/data/seed-john'
+import { jane } from '@/data/seed-jane'
+import { bloodCategories as johnBloodCategories, BILAN_DATES } from '@/data/bloodwork-data'
+import { bloodCategoriesR as janeBloodCategories, BILAN_DATES_R } from '@/data/bloodwork-jane'
+import { useSession } from './SessionContext'
+import { createClient } from '@/lib/supabase/client'
 
 // ─── State & context shape ────────────────────────────────────────────────────
 
@@ -14,7 +16,7 @@ type PersonaState = {
   demoId: DemoPersonaId
 }
 
-const DEFAULT_STATE: PersonaState = { mode: 'demo', demoId: 'guillaume' }
+const DEFAULT_STATE: PersonaState = { mode: 'demo', demoId: 'john' }
 const STORAGE_KEY = 'lyvio.persona'
 
 type PersonaContextValue = {
@@ -35,28 +37,59 @@ const PersonaContext = createContext<PersonaContextValue>({
 
 export function PersonaProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<PersonaState>(DEFAULT_STATE)
+  const { user, profile } = useSession()
 
-  // Hydrate from localStorage after mount (SSR-safe)
+  // Initialize from session or localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored) as PersonaState
-        if (parsed.mode && parsed.demoId) setState(parsed)
-      }
-    } catch {}
-  }, [])
+    if (profile) {
+      // User is authenticated - use profile.current_mode
+      const mode = profile.current_mode as PersonaMode
+      const demoId = (profile.current_demo_id || 'guillaume') as DemoPersonaId
+      setState({ mode, demoId })
+    } else if (!user) {
+      // No user - hydrate from localStorage
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY)
+        if (stored) {
+          const parsed = JSON.parse(stored) as PersonaState
+          if (parsed.mode && parsed.demoId) setState(parsed)
+        }
+      } catch {}
+    }
+  }, [user, profile])
 
-  // Persist to localStorage whenever state changes
+  // Persist to localStorage for guest mode
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    } catch {}
-  }, [state])
+    if (!user) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      } catch {}
+    }
+  }, [state, user])
 
   const setMode = (mode: PersonaMode) => setState(prev => ({ ...prev, mode }))
-  const switchDemo = (demoId: DemoPersonaId) => setState({ mode: 'demo', demoId })
-  const setReal = () => setState(prev => ({ ...prev, mode: 'real' }))
+
+  const switchDemo = async (demoId: DemoPersonaId) => {
+    setState({ mode: 'demo', demoId })
+
+    // Update in Supabase if authenticated
+    if (user && profile) {
+      const supabase = createClient()
+      const updateData = { current_mode: 'demo', current_demo_id: demoId }
+      await ((supabase.from('profiles') as any).update(updateData).eq('user_id', user.id))
+    }
+  }
+
+  const setReal = async () => {
+    setState(prev => ({ ...prev, mode: 'real' }))
+
+    // Update in Supabase if authenticated
+    if (user && profile) {
+      const supabase = createClient()
+      const updateData = { current_mode: 'real' }
+      await ((supabase.from('profiles') as any).update(updateData).eq('user_id', user.id))
+    }
+  }
 
   return (
     <PersonaContext.Provider value={{ state, setMode, switchDemo, setReal }}>
@@ -75,21 +108,21 @@ export function usePersonaContext() {
 export function usePersonaData() {
   const { state } = usePersonaContext()
   if (state.mode === 'real') return null
-  if (state.demoId === 'raphaelle') {
+  if (state.demoId === 'jane') {
     return {
-      ...raphaelle,
+      ...jane,
       bloodwork: {
-        ...raphaelle.bloodworkHero,
-        categories: bloodCategoriesR,
+        ...jane.bloodworkHero,
+        categories: janeBloodCategories,
         dates: BILAN_DATES_R,
       },
     }
   }
   return {
-    ...guillaume,
+    ...john,
     bloodwork: {
-      ...guillaume.bloodworkHero,
-      categories: guillaumeBloodCategories,
+      ...john.bloodworkHero,
+      categories: johnBloodCategories,
       dates: BILAN_DATES,
     },
   }

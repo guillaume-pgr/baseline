@@ -3,11 +3,13 @@
 import { useRef, useEffect, useState } from 'react'
 import { IconChevronDown } from '@tabler/icons-react'
 import { usePersonaContext, usePersonaData } from '@/lib/context/PersonaContext'
+import ComingSoonModal from '@/components/ComingSoonModal'
 
 export default function PersonaSwitcher() {
   const { state, switchDemo, setReal } = usePersonaContext()
   const data = usePersonaData()
   const [open, setOpen] = useState(false)
+  const [comingSoonOpen, setComingSoonOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Close on click outside
@@ -31,11 +33,12 @@ export default function PersonaSwitcher() {
   }, [open])
 
   const isRealMode = state.mode === 'real'
-  const personaName = isRealMode ? 'Mes données' : data?.profile.displayName || 'Guillaume P.'
+  const personaName = isRealMode ? 'Mes données' : data?.profile.displayName || 'John D.'
   const personaSub = isRealMode ? 'Aucune donnée pour l\'instant' : `${data?.profile.persona} · ${data?.profile.age} ans · ${data?.profile.sex}`
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
+      <ComingSoonModal open={comingSoonOpen} onClose={() => setComingSoonOpen(false)} />
       {/* Button - closed state */}
       <button
         onClick={() => setOpen(!open)}
@@ -98,7 +101,7 @@ export default function PersonaSwitcher() {
             </div>
             <button
               onClick={() => {
-                setReal()
+                setComingSoonOpen(true)
                 setOpen(false)
               }}
               style={{
@@ -136,10 +139,10 @@ export default function PersonaSwitcher() {
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', padding: '12px 14px 6px' }}>
               MODE · DÉMO (PROJECTION)
             </div>
-            {(['guillaume', 'raphaelle'] as const).map(id => {
+            {(['john', 'jane'] as const).map(id => {
               const isActive = state.mode === 'demo' && state.demoId === id
-              const displayName = id === 'guillaume' ? 'Guillaume Pas' : 'Raphaëlle B.'
-              const displaySub = id === 'guillaume' ? 'H 30 ans' : 'F 28 ans'
+              const displayName = id === 'john' ? 'John Doe' : 'Jane Doe'
+              const displaySub = id === 'john' ? 'H 30 ans' : 'F 30 ans'
               return (
                 <button
                   key={id}
@@ -181,10 +184,8 @@ export default function PersonaSwitcher() {
           {/* Section 3: Import action */}
           <button
             onClick={() => {
-              setReal()
+              setComingSoonOpen(true)
               setOpen(false)
-              // TODO: Open import modal in Phase 6
-              console.log('Import real data modal - Phase 6')
             }}
             style={{
               width: '100%',

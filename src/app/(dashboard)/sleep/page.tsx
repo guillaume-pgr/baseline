@@ -121,7 +121,7 @@ export default function SleepPage() {
           }}
           secondaryAction={{
             label: 'Voir le mode démo',
-            onClick: () => switchDemo('guillaume'),
+            onClick: () => switchDemo('john'),
           }}
         />
       </div>

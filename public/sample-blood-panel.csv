@@ -1,0 +1,12 @@
+marker_code,marker_name,value,unit,ref_min,ref_max
+GLU,Glucose,95,mg/dL,70,100
+CREAT,Créatinine,0.85,mg/dL,0.7,1.3
+HDL,HDL Cholestérol,52,mg/dL,40,999
+LDL,LDL Cholestérol,110,mg/dL,0,100
+TRIGLY,Triglycérides,120,mg/dL,0,150
+TSH,TSH,2.1,mIU/L,0.4,4
+T4,T4 Libre,1.2,ng/dL,0.8,1.8
+HEMATOCR,Hématocrite,44,%,41,53
+HB,Hémoglobine,14.5,g/dL,13.5,17.5
+PLT,Plaquettes,245,10^3/µL,150,400
+WBC,Leucocytes,6.8,10^3/µL,4.5,11
