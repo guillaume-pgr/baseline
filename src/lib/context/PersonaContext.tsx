@@ -8,6 +8,7 @@ import { bloodCategories as johnBloodCategories, BILAN_DATES } from '@/data/bloo
 import { bloodCategoriesR as janeBloodCategories, BILAN_DATES_R } from '@/data/bloodwork-jane'
 import { useSession } from './SessionContext'
 import { createClient } from '@/lib/supabase/client'
+import { ADMIN_EMAIL } from '@/lib/config'
 
 // ─── State & context shape ────────────────────────────────────────────────────
 
@@ -39,15 +40,25 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<PersonaState>(DEFAULT_STATE)
   const { user, profile } = useSession()
 
-  // Initialize from session or localStorage
+  // Initialize from session or localStorage — override mode based on account status
   useEffect(() => {
     if (profile) {
-      // User is authenticated - use profile.current_mode
-      const mode = profile.current_mode as PersonaMode
-      const demoId = (profile.current_demo_id || 'guillaume') as DemoPersonaId
+      const isAdmin = !!(profile as any).is_admin || user?.email === ADMIN_EMAIL
+      const status  = (profile as any).status ?? 'pending'
+
+      let mode: PersonaMode
+      if (!isAdmin && status === 'pending') {
+        mode = 'demo'                               // pending → always demo
+      } else if (isAdmin || status === 'approved_free' || status === 'approved_premium') {
+        mode = 'real'                               // approved → default real
+      } else {
+        mode = (profile.current_mode as PersonaMode) || 'demo'
+      }
+
+      const demoId = ((profile.current_demo_id as DemoPersonaId) === 'jane' ? 'jane' : 'john') as DemoPersonaId
       setState({ mode, demoId })
     } else if (!user) {
-      // No user - hydrate from localStorage
+      // Guest — hydrate from localStorage
       try {
         const stored = localStorage.getItem(STORAGE_KEY)
         if (stored) {
@@ -81,6 +92,11 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
   }
 
   const setReal = async () => {
+    // Guard: pending users cannot switch to real mode
+    const isAdmin = !!(profile as any)?.is_admin || user?.email === ADMIN_EMAIL
+    const status  = (profile as any)?.status ?? 'pending'
+    if (!isAdmin && status === 'pending') return
+
     setState(prev => ({ ...prev, mode: 'real' }))
 
     // Update in Supabase if authenticated

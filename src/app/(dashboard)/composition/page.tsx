@@ -6,6 +6,8 @@ import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 import PageSummary from '@/components/detail/PageSummary'
+import LockedPageOverlay from '@/components/LockedPageOverlay'
+import { useAccount } from '@/lib/context/useAccount'
 
 // Body path in 0–200 space (x: 32–168, y: 12–346)
 const BODY_PATH = `M 100 12 C 88 12 78 22 78 34 C 78 46 88 56 100 56 C 112 56 122 46 122 34 C 122 22 112 12 100 12 Z M 72 62 C 58 64 46 72 42 86 L 32 130 C 30 140 36 150 46 152 L 52 154 L 48 210 L 40 320 C 38 332 44 342 54 344 L 68 346 C 76 346 82 340 84 332 L 96 258 L 104 258 L 116 332 C 118 340 124 346 132 346 L 146 344 C 156 342 162 332 160 320 L 152 210 L 148 154 L 154 152 C 164 150 170 140 168 130 L 158 86 C 154 72 142 64 128 62 C 120 60 112 58 100 58 C 88 58 80 60 72 62 Z`
@@ -196,7 +198,12 @@ function CompositionEvolutionChart({ musclePct, fatPct, evolution_dates }: { mus
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default function CompositionPage() {
   const data = usePersonaData()
-  const { switchDemo } = usePersonaContext()
+  const { switchDemo, state } = usePersonaContext()
+  const { isFree, isAdmin } = useAccount()
+
+  if (isFree && !isAdmin && state.mode === 'real') {
+    return <LockedPageOverlay feature="Composition corporelle" onViewDemo={() => switchDemo('john')} />
+  }
 
   if (!data) {
     return (

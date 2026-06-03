@@ -5,6 +5,8 @@ import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 import PageSummary from '@/components/detail/PageSummary'
+import LockedPageOverlay from '@/components/LockedPageOverlay'
+import { useAccount } from '@/lib/context/useAccount'
 import { IconDownload } from '@tabler/icons-react'
 
 // ─── KPI cards ────────────────────────────────────────────────────────────────
@@ -105,7 +107,12 @@ function HrvChart({ hrv, hrvDates }: { hrv: number[]; hrvDates: string[] }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SleepPage() {
   const data = usePersonaData()
-  const { switchDemo } = usePersonaContext()
+  const { switchDemo, state } = usePersonaContext()
+  const { isFree, isAdmin } = useAccount()
+
+  if (isFree && !isAdmin && state.mode === 'real') {
+    return <LockedPageOverlay feature="Sommeil & HRV" onViewDemo={() => switchDemo('john')} />
+  }
 
   if (!data) {
     return (

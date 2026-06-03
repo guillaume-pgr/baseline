@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
+import { IconChevronDown, IconChevronUp, IconLock } from '@tabler/icons-react'
+import { useAccount } from '@/lib/context/useAccount'
 
 // ─── FAQ data ─────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
@@ -89,6 +90,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function CompanionPanel() {
   const [tab, setTab] = useState<'faq' | 'chat'>('faq')
+  const { canUseChat } = useAccount()
 
   return (
     <aside
@@ -120,26 +122,31 @@ export default function CompanionPanel() {
         borderBottom: '1px solid var(--color-line)',
         flexShrink: 0,
       }}>
-        {(['faq', 'chat'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{
-              flex: 1,
-              padding: '7px 0',
-              fontSize: 12,
-              fontWeight: 500,
-              borderRadius: 8,
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.15s',
-              backgroundColor: tab === t ? 'var(--color-ink)' : 'var(--color-surface-2)',
-              color: tab === t ? 'var(--color-bg)' : 'var(--color-ink-3)',
-            }}
-          >
-            {t === 'faq' ? 'FAQ' : 'Chat IA'}
-          </button>
-        ))}
+        {(['faq', 'chat'] as const).map(t => {
+          const chatLocked = t === 'chat' && !canUseChat
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                flex: 1,
+                padding: '7px 0',
+                fontSize: 12,
+                fontWeight: 500,
+                borderRadius: 8,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                backgroundColor: tab === t ? 'var(--color-ink)' : 'var(--color-surface-2)',
+                color: tab === t ? 'var(--color-bg)' : 'var(--color-ink-3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              }}
+            >
+              {t === 'faq' ? 'FAQ' : 'Chat IA'}
+              {chatLocked && <IconLock size={10} strokeWidth={2.5} />}
+            </button>
+          )
+        })}
       </div>
 
       {/* Content */}
@@ -152,19 +159,21 @@ export default function CompanionPanel() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Bandeau abonnement */}
-            <div style={{
-              margin: '12px 0 8px',
-              padding: '10px 14px',
-              backgroundColor: 'var(--color-amber-soft)',
-              borderRadius: 8,
-              fontSize: 11,
-              color: 'var(--color-ink-2)',
-              lineHeight: 1.5,
-            }}>
-              Le chat interactif nécessite un abonnement Lyvio+{' '}
-              <span style={{ color: 'var(--color-ink-3)' }}>(bientôt disponible)</span>
-            </div>
+            {/* Bandeau abonnement — affiché selon le statut réel */}
+            {!canUseChat && (
+              <div style={{
+                margin: '12px 0 8px',
+                padding: '10px 14px',
+                backgroundColor: 'var(--color-amber-soft)',
+                borderRadius: 8,
+                fontSize: 11,
+                color: 'var(--color-ink-2)',
+                lineHeight: 1.5,
+              }}>
+                Le chat interactif nécessite un abonnement Lyvio+{' '}
+                <span style={{ color: 'var(--color-ink-3)' }}>(bientôt disponible)</span>
+              </div>
+            )}
 
             {/* Pre-scripted demo conversation */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>

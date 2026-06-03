@@ -16,12 +16,16 @@ import {
 } from '@tabler/icons-react'
 import PersonaSwitcher from './sidebar/PersonaSwitcher'
 import { useSession } from '@/lib/context/SessionContext'
+import { useAccount } from '@/lib/context/useAccount'
+import { usePersonaContext } from '@/lib/context/PersonaContext'
+import { IconLock } from '@tabler/icons-react'
 
 type NavItem = {
   href: string
   label: string
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>
   soon?: boolean
+  gated?: boolean  // locked behind Lyvio+
 }
 
 type NavSection = {
@@ -40,10 +44,10 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'Signaux',
     items: [
       { href: '/bloodwork',    label: 'Prises de sang',    icon: IconTestPipe },
-      { href: '/composition',  label: 'Composition',       icon: IconScale },
-      { href: '/aerobic',      label: 'Capacité aérobie',  icon: IconRun },
-      { href: '/sleep',        label: 'Sommeil & HRV',     icon: IconMoon },
-      { href: '/microbiome',   label: 'Microbiote',        icon: IconMicroscope },
+      { href: '/composition',  label: 'Composition',       icon: IconScale,      gated: true },
+      { href: '/aerobic',      label: 'Capacité aérobie',  icon: IconRun,        gated: true },
+      { href: '/sleep',        label: 'Sommeil & HRV',     icon: IconMoon,       gated: true },
+      { href: '/microbiome',   label: 'Microbiote',        icon: IconMicroscope, gated: true },
     ],
   },
   {
@@ -60,6 +64,9 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, signOut } = useSession()
+  const { isFree } = useAccount()
+  const { state } = usePersonaContext()
+  const showLocks = isFree && state.mode === 'real'
 
   const handleSignOut = async () => {
     await signOut()
@@ -91,7 +98,7 @@ export default function Sidebar() {
               {section.label}
             </p>
             <div className="flex flex-col gap-0.5">
-              {section.items.map(({ href, label, icon: Icon, soon }) => {
+              {section.items.map(({ href, label, icon: Icon, soon, gated }) => {
                 const active = pathname === href
                 const dimmed = soon === true
 
@@ -120,20 +127,25 @@ export default function Sidebar() {
                   )
                 }
 
+                const locked = showLocks && gated
+
                 return (
                   <Link
                     key={href}
                     href={href}
-                    className="flex items-center gap-3 px-3 rounded-lg transition-colors"
+                    className="flex items-center justify-between px-3 rounded-lg transition-colors"
                     style={{
                       height: 38,
-                      color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
+                      color: active ? 'var(--color-ink)' : locked ? 'var(--color-ink-4)' : 'var(--color-ink-3)',
                       backgroundColor: active ? 'var(--color-surface-2)' : 'transparent',
                       fontWeight: active ? 600 : 400,
                     }}
                   >
-                    <Icon size={17} strokeWidth={1.8} />
-                    <span className="text-sm">{label}</span>
+                    <div className="flex items-center gap-3">
+                      <Icon size={17} strokeWidth={1.8} />
+                      <span className="text-sm">{label}</span>
+                    </div>
+                    {locked && <IconLock size={12} strokeWidth={2} color="var(--color-ink-5)" />}
                   </Link>
                 )
               })}
