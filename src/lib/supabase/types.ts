@@ -12,6 +12,11 @@ export type Database = {
           height_cm: number | null
           current_mode: 'demo' | 'real'
           current_demo_id: string | null
+          status: 'pending' | 'approved_free' | 'approved_premium' | 'rejected'
+          is_admin: boolean
+          cgv_accepted_at: string | null
+          approved_at: string | null
+          last_chat_question_at: string | null
           created_at: string
           updated_at: string
         }
@@ -25,6 +30,11 @@ export type Database = {
           height_cm?: number | null
           current_mode?: 'demo' | 'real'
           current_demo_id?: string | null
+          status?: 'pending' | 'approved_free' | 'approved_premium' | 'rejected'
+          is_admin?: boolean
+          cgv_accepted_at?: string | null
+          approved_at?: string | null
+          last_chat_question_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -38,6 +48,11 @@ export type Database = {
           height_cm?: number | null
           current_mode?: 'demo' | 'real'
           current_demo_id?: string | null
+          status?: 'pending' | 'approved_free' | 'approved_premium' | 'rejected'
+          is_admin?: boolean
+          cgv_accepted_at?: string | null
+          approved_at?: string | null
+          last_chat_question_at?: string | null
           created_at?: string
           updated_at?: string
         }
