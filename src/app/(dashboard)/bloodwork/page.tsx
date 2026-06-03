@@ -11,6 +11,7 @@ import CohortBand from '@/components/detail/CohortBand'
 import EvolutionMultiLineChart from '@/components/detail/EvolutionMultiLineChart'
 import ImportModal from '@/components/ImportModal'
 import { type BloodMarker, type BloodCategory } from '@/data/bloodwork-data'
+import PageSummary from '@/components/detail/PageSummary'
 
 // ─── Marker bar (gradient + cursor) ─────────────────────────────────────────
 function MarkerRow({ m }: { m: BloodMarker }) {
@@ -411,6 +412,7 @@ export default function BloodworkPage() {
           </>
         }
       />
+      <PageSummary text={data.pageSummaries.bloodwork} />
 
       {/* Value hero */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, padding: '36px 40px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, marginBottom: 48, alignItems: 'center' }}>

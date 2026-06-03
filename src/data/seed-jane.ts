@@ -207,6 +207,14 @@ export const jane = {
     cohortPercentile: 88,
   },
 
+  pageSummaries: {
+    bloodwork: "Bilan sanguin de bonne tenue : 35 marqueurs sur 40 optimaux. Le profil lipidique et la glycémie sont excellents. Deux points à surveiller : la ferritine en baisse sur 3 bilans consécutifs et la vitamine D insuffisante — deux déficits à corriger en priorité.",
+    composition: "Composition en amélioration continue : 21,4 % de masse grasse, en recul depuis 6 mois (−2 pts). Masse maigre en légère progression (+0,8 kg). L'objectif <18 % est atteignable d'ici l'automne avec le rythme actuel.",
+    aerobic: "Belle capacité aérobie en forte progression : VO₂max à 44,5 mL/kg/min, top 22 % de ta cohorte. +4,3 mL en 5 mois — la meilleure trajectoire des 5 domaines. La base Z2 (48 %) est bien construite.",
+    sleep: "Récupération excellente : HRV à 72 ms (record personnel), efficacité à 93 %, sommeil profond à 24 %. La progression HRV sur 5 mois (+7 ms) est remarquable. Durée légèrement courte (7h28) — un objectif de 7h45 serait bénéfique.",
+    microbiome: "Diversité microbiotique modérée : indice de Shannon à 3,18. Bifidobacterium longum bien représenté. Lactobacillus reuteri bas (lien possible avec humeur) et présence de Prevotella copri à surveiller — une supplémentation probiotique ciblée pourrait aider.",
+  },
+
   microbiomeData: {
     shannon: 3.18,
     fbRatio: 1.32,

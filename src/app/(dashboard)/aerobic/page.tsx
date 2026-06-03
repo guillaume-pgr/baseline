@@ -4,6 +4,7 @@ import { usePersonaData, usePersonaContext } from '@/lib/context/PersonaContext'
 import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
+import PageSummary from '@/components/detail/PageSummary'
 import { IconDownload } from '@tabler/icons-react'
 
 // ─── VO2 gauge — 270° horseshoe arc open at bottom ───────────────────────────
@@ -101,6 +102,7 @@ export default function AerobicPage() {
         sub={`Dernière mesure : ${aerobicData.historyDates[aerobicData.historyDates.length - 1]}.`}
         actions={<Btn><IconDownload size={14} />Exporter</Btn>}
       />
+      <PageSummary text={data.pageSummaries.aerobic} />
 
       {/* Hero: gauge + cohort */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, padding: '36px 40px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, marginBottom: 32, alignItems: 'center' }}>

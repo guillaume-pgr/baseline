@@ -205,6 +205,14 @@ export const john = {
     cohortPercentile: 82,
   },
 
+  pageSummaries: {
+    bloodwork: "Bilan sanguin solide : 21 marqueurs sur 40 dans la zone optimale. Le profil hématologique et la glycémie sont au top. Point de vigilance : le HDL poursuit sa baisse depuis 18 mois (−0,07 g/L vs 2024) — un levier prioritaire à activer avant le prochain bilan.",
+    composition: "Composition solide pour ton profil : 15,2 % de masse grasse, en baisse régulière depuis 6 mois (−1,1 pt). Masse maigre en progression (+1,4 kg). L'objectif <13 % est à 2 % de distance — continue sur cette trajectoire.",
+    aerobic: "Capacité aérobie exceptionnelle : VO₂max à 52,0 mL/kg/min, soit le top 5 % de ta cohorte. Progression de +2,8 mL sur 5 mois. L'endurance Z2 domine tes séances (52 %) — base solide pour progresser encore.",
+    sleep: "Récupération de haut niveau : HRV à 68 ms en hausse (+6 ms sur 90 jours), efficacité à 91 %, durée moyenne 7h42. Le sommeil profond (22 %) et le REM (24 %) sont bien distribués. Continue à protéger tes nuits.",
+    microbiome: "Diversité microbiotique modérée : indice de Shannon à 3,42. Les trois souches protectrices (Akkermansia, Faecalibacterium, Bifidobacterium) sont bien présentes. Lactobacillus reuteri est faible — un point à surveiller pour l'axe intestin-humeur.",
+  },
+
   microbiomeData: {
     shannon: 3.42,
     fbRatio: 1.61,

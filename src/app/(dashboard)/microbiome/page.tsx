@@ -4,6 +4,7 @@ import { usePersonaData, usePersonaContext } from '@/lib/context/PersonaContext'
 import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
+import PageSummary from '@/components/detail/PageSummary'
 import { IconDownload } from '@tabler/icons-react'
 
 // ─── Donut chart data ─────────────────────────────────────────────────────────
@@ -116,6 +117,7 @@ export default function MicrobiomePage() {
         sub="Analyse du microbiote intestinal. "
         actions={<Btn><IconDownload size={14} />Exporter</Btn>}
       />
+      <PageSummary text={data.pageSummaries.microbiome} />
 
       {/* Main layout: donut + legend + bacteria */}
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 40, marginBottom: 32 }}>

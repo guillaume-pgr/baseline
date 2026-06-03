@@ -4,6 +4,7 @@ import { usePersonaData, usePersonaContext } from '@/lib/context/PersonaContext'
 import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
+import PageSummary from '@/components/detail/PageSummary'
 import { IconDownload } from '@tabler/icons-react'
 
 // ─── KPI cards ────────────────────────────────────────────────────────────────
@@ -138,6 +139,7 @@ export default function SleepPage() {
         sub="Dernières données de sommeil."
         actions={<Btn><IconDownload size={14} />Exporter</Btn>}
       />
+      <PageSummary text={data.pageSummaries.sleep} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
         {sleepData.kpis.map(k => <KpiCard key={k.label} {...k} />)}
