@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { manrope, jetbrainsMono } from "./fonts";
 import "./globals.css";
+import MobileGate from "@/components/MobileGate";
 
 export const metadata: Metadata = {
   title: "Lyvio — Performance & Santé",
@@ -14,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${manrope.variable} ${jetbrainsMono.variable}`}>
-      <body>{children}</body>
+      <body><MobileGate>{children}</MobileGate></body>
     </html>
   );
 }
