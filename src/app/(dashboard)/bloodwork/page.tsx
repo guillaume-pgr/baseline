@@ -10,7 +10,7 @@ import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
 import EvolutionMultiLineChart from '@/components/detail/EvolutionMultiLineChart'
 import ImportModal from '@/components/ImportModal'
-import { type BloodMarker, type BloodCategory } from '@/data/bloodwork-data'
+import { type BloodMarker, type BloodCategory, MARKER_EXPLANATIONS } from '@/data/bloodwork-data'
 import PageSummary from '@/components/detail/PageSummary'
 
 // ─── Marker bar (gradient + cursor) ─────────────────────────────────────────
@@ -59,11 +59,69 @@ function MarkerRow({ m }: { m: BloodMarker }) {
   )
 }
 
+// ─── Marker row — exhaustive view (left 2/3 + right 1/3 explanation) ─────────
+function MarkerRowExhaustive({ m }: { m: BloodMarker }) {
+  const pct = Math.min(Math.max((m.value - m.range[0]) / (m.range[1] - m.range[0]), 0), 1) * 100
+  const trendColor = m.trendDir === 'up' ? '#5C7A4A' : m.trendDir === 'down' ? 'var(--color-rust)' : 'var(--color-ink-3)'
+  const explanation = MARKER_EXPLANATIONS[m.id]
+
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: '2fr 1fr',
+      gap: 24, alignItems: 'center',
+      padding: '14px 0', borderBottom: '1px solid var(--color-line)',
+    }}>
+      {/* Left 2/3: condensed marker info */}
+      <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 90px 80px', gap: 12, alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 500 }}>{m.name}</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 2 }}>{m.context}</div>
+        </div>
+        <div>
+          <div style={{ position: 'relative', height: 4, borderRadius: 999, background: 'linear-gradient(to right, var(--color-rust-soft) 0%, var(--color-rust-soft) 12%, var(--color-amber-soft) 12%, var(--color-amber-soft) 28%, var(--color-lichen-soft) 28%, var(--color-lichen-soft) 72%, var(--color-amber-soft) 72%, var(--color-amber-soft) 88%, var(--color-rust-soft) 88%, var(--color-rust-soft) 100%)' }}>
+            <div style={{
+              position: 'absolute', top: '50%', left: `${pct}%`,
+              transform: 'translate(-50%, -50%)',
+              width: 8, height: 8,
+              backgroundColor: m.warn ? 'var(--color-rust)' : 'var(--color-ink)',
+              border: '2px solid var(--color-surface)',
+              borderRadius: '50%',
+            }} />
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 500, color: m.warn ? 'var(--color-rust)' : 'var(--color-ink)' }}>
+            {m.value.toString().replace('.', ',')}
+          </div>
+          <div style={{ fontSize: 9, color: 'var(--color-ink-4)', marginTop: 2 }}>{m.unit}</div>
+        </div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textAlign: 'right', color: trendColor }}>
+          {m.trendLabel}
+        </div>
+      </div>
+
+      {/* Right 1/3: explanation */}
+      {explanation && (
+        <p style={{
+          fontSize: 11,
+          color: 'var(--color-ink-3)',
+          lineHeight: 1.55,
+          margin: 0,
+          paddingLeft: 16,
+          borderLeft: '1px solid var(--color-line)',
+        }}>
+          {explanation}
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ─── Category card ───────────────────────────────────────────────────────────
 // Alt colors for multi-series: primary color + 3 softer biotech tones
 const MULTI_COLORS = ['#B5705A', '#7BA8B5', '#9CB380', '#9890B5']
 
-function CategoryCard({ cat, dates }: { cat: BloodCategory; dates: string[] }) {
+function CategoryCard({ cat, dates, exhaustive }: { cat: BloodCategory; dates: string[]; exhaustive?: boolean }) {
   const chartSeries = cat.chartMarkerIds.map((markerId, i) => {
     const m = cat.markers.find(x => x.id === markerId)!
     const color = cat.chartMarkerIds.length > 1
@@ -94,22 +152,24 @@ function CategoryCard({ cat, dates }: { cat: BloodCategory; dates: string[] }) {
 
       {/* Marker rows */}
       <div>
-        {cat.markers.map((m, i) => (
-          <div key={m.id} style={{ borderBottom: i < cat.markers.length - 1 ? undefined : 'none' }}>
-            <MarkerRow m={m} />
-          </div>
+        {cat.markers.map(m => (
+          exhaustive
+            ? <MarkerRowExhaustive key={m.id} m={m} />
+            : <MarkerRow key={m.id} m={m} />
         ))}
       </div>
 
-      {/* Inline evolution chart */}
-      <div style={{ marginTop: 24 }}>
-        <EvolutionMultiLineChart
-          id={cat.id}
-          title={cat.chartTitle}
-          series={chartSeries}
-          dates={dates}
-        />
-      </div>
+      {/* Inline evolution chart — only in category (non-exhaustive) view */}
+      {!exhaustive && (
+        <div style={{ marginTop: 24 }}>
+          <EvolutionMultiLineChart
+            id={cat.id}
+            title={cat.chartTitle}
+            series={chartSeries}
+            dates={dates}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -481,7 +541,7 @@ export default function BloodworkPage() {
 
       {/* Categories */}
       {categories.map(cat => (
-        <CategoryCard key={cat.id} cat={cat} dates={dates} />
+        <CategoryCard key={cat.id} cat={cat} dates={dates} exhaustive={filter === null} />
       ))}
     </div>
   )

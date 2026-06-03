@@ -32,6 +32,60 @@ export type BloodCategory = {
   markers: BloodMarker[]
 }
 
+export const MARKER_EXPLANATIONS: Record<string, string> = {
+  // Hématologie
+  hemoglobine: "Transporte l'oxygène dans le sang. Un taux optimal soutient l'énergie et l'endurance. Trop bas : fatigue chronique ; trop haut : surveiller l'hydratation.",
+  hematocrite: "Proportion de globules rouges dans le sang. Reflète la capacité de transport d'oxygène. Stable dans la norme, c'est le signe d'un sang bien équilibré.",
+  leucocytes:  "Globules blancs — première ligne de défense immunitaire. Un taux normal indique l'absence d'infection ou d'inflammation active en cours.",
+  plaquettes:  "Impliquées dans la coagulation. Un taux stable dans la norme protège contre les saignements sans risque de thrombose.",
+  vgm:         "Volume moyen des globules rouges. Aide à distinguer les types d'anémie. Un VGM normal avec une hémoglobine stable est un excellent signal.",
+  // Lipides
+  hdl:         "Le « bon » cholestérol — évacue les graisses des artères. Un HDL élevé réduit le risque cardiovasculaire. Soutenu par l'exercice d'endurance et les oméga-3.",
+  ldl:         "Le « mauvais » cholestérol — peut s'accumuler dans les artères. Un LDL bas limite le risque de plaques athérosclérotiques sur le long terme.",
+  tg:          "Graisses circulantes issues des glucides et des lipides alimentaires. Un taux bas reflète un bon métabolisme énergétique et un faible risque cardiovasculaire.",
+  ct_hdl:      "Rapport cholestérol total / HDL — indicateur clé du risque cardiovasculaire. Un ratio élevé signale un déséquilibre lipidique à corriger en priorité.",
+  // Glucides
+  glycemie:    "Taux de sucre dans le sang à jeun. Stable dans la zone verte, il indique une bonne sensibilité à l'insuline et un risque de diabète minimal.",
+  hba1c:       "Reflet de la glycémie sur 3 mois. Un HbA1c bas confirme la stabilité glucidique dans le temps — un signal de bonne santé métabolique durable.",
+  insuline:    "Hormone de régulation du sucre. Un taux bas à jeun indique une excellente sensibilité insulinique, protectrice contre le diabète de type 2.",
+  // Foie
+  asat:        "Enzyme libérée lors d'une atteinte hépatique ou musculaire. Peut être légèrement élevée après une séance intense — un pic isolé n'est pas préoccupant.",
+  alat:        "Enzyme spécifique du foie. Un taux stable et normal indique l'absence de lésion hépatique active.",
+  ggt:         "Sensible à l'alcool et aux médicaments. Un taux bas est un bon signe de santé hépatique globale et d'un métabolisme hépatique non surchargé.",
+  bili:        "Produit de dégradation des globules rouges, éliminé par le foie. Un taux normal confirme une bonne fonction hépatique et une hémolyse physiologique.",
+  pal:         "Enzyme foie / os. Un taux stable dans la norme suggère une bonne santé hépatique et osseuse simultanément.",
+  // Reins
+  creatinine:  "Déchet musculaire filtré par les reins. Une créatinine stable dans la norme confirme une bonne fonction rénale — à surveiller si l'apport protéique est très élevé.",
+  dfg:         "Évalue la capacité de filtration des reins. Un DFG > 90 est le signe d'une excellente fonction rénale, protectrice sur le long terme.",
+  uree:        "Déchet azoté issu des protéines. Un taux normal indique un équilibre entre apport protéique et capacité d'élimination rénale.",
+  acide_urique:"Produit de dégradation des purines. Un taux élevé peut favoriser la goutte et les calculs rénaux. Une bonne hydratation aide à le maintenir bas.",
+  // Ionogramme
+  sodium:      "Principal électrolyte du liquide extracellulaire. Régule l'équilibre hydrique et la pression artérielle. Stable dans la norme, il reflète une hydratation adéquate.",
+  potassium:   "Essentiel à la contraction musculaire et cardiaque. Une valeur dans la zone verte garantit une bonne activité neuromusculaire et un rythme cardiaque régulier.",
+  chlore:      "Accompagne le sodium dans l'équilibre acido-basique. Généralement stable — un taux normal confirme l'équilibre électrolytique global de l'organisme.",
+  bicarbonates:"Tampons du pH sanguin. Un taux stable signifie que l'organisme gère bien son équilibre acido-basique, même lors des efforts intenses.",
+  // Bilan martial
+  ferritine:   "Réserves de fer de l'organisme. Un stock solide évite la fatigue chronique et soutient la performance aérobie. Clé pour les sportifs d'endurance.",
+  fer:         "Fer disponible immédiatement dans le sang. Complémente la ferritine pour évaluer le statut martial global et la capacité à transporter l'oxygène.",
+  sat_tf:      "Pourcentage de transferrine chargée en fer. Un taux stable dans la norme confirme un bon équilibre entre absorption et utilisation du fer.",
+  // Minéraux
+  calcium:     "Essentiel aux os, aux muscles et à la transmission nerveuse. Un taux stable dans la norme protège le capital osseux et la contraction musculaire.",
+  magnesium:   "Impliqué dans plus de 300 réactions enzymatiques. Un magnésium optimal soutient l'énergie, la récupération musculaire et la qualité du sommeil.",
+  zinc:        "Soutient l'immunité, la synthèse de testostérone et la réparation tissulaire. Un taux optimal favorise la récupération post-effort et la résistance aux infections.",
+  // Thyroïde
+  tsh:         "Signal de l'hypophyse vers la thyroïde. Une TSH normale indique une thyroïde équilibrée — clé pour l'énergie, le métabolisme basal et la régulation du poids.",
+  t4l:         "Hormone thyroïdienne circulante. Un taux stable confirme un métabolisme basal équilibré, avec un impact direct sur l'énergie et l'humeur.",
+  // Vitamines
+  vitd:        "Essentielle à l'immunité, la santé osseuse et l'humeur. Un niveau optimal (> 40 ng/mL) réduit le risque d'infections et soutient la récupération musculaire.",
+  vitb12:      "Nécessaire à la myéline (gaine nerveuse) et à la production de globules rouges. Un déficit peut provoquer fatigue, troubles cognitifs et anémie.",
+  folates:     "Impliqués dans la synthèse de l'ADN et la multiplication cellulaire. Essentiels à la méthylation, processus clé de détoxification cellulaire.",
+  vitb6:       "Co-enzyme dans la synthèse des neurotransmetteurs (sérotonine, dopamine). Un taux optimal soutient l'humeur, le sommeil et la récupération nerveuse.",
+  // Inflammation
+  crp:         "Marqueur d'inflammation systémique. Un taux bas est associé à une bonne récupération, un risque cardiovasculaire réduit et un vieillissement cellulaire ralenti.",
+  fibrinogene: "Protéine de coagulation et marqueur inflammatoire. Un taux stable dans la norme limite le risque de thrombose et confirme l'absence d'inflammation chronique.",
+  homocysteine:"Acide aminé lié au risque cardiovasculaire et cognitif. Un taux élevé peut être abaissé par les vitamines B6, B9 et B12 — un levier simple à activer.",
+}
+
 export const bloodCategories: BloodCategory[] = [
   // ─── 1. HÉMATOLOGIE ───────────────────────────────────────────────────────
   {
