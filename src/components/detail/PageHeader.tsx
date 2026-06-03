@@ -28,10 +28,10 @@ export default function PageHeader({ section, title, sub, actions }: PageHeaderP
       {/* Title row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'end', gap: 32 }}>
         <div>
-          <h1 style={{ fontSize: 44, fontWeight: 300, letterSpacing: '-0.035em', lineHeight: 1.05, marginBottom: 12 }}>
+          <h1 style={{ fontSize: '2.75rem', fontWeight: 300, letterSpacing: '-0.035em', lineHeight: 1.05, marginBottom: 12 }}>
             {title}
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--color-ink-3)', maxWidth: 540, lineHeight: 1.6 }}>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--color-ink-3)', maxWidth: 540, lineHeight: 1.6 }}>
             {sub}
           </p>
         </div>

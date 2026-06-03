@@ -17,7 +17,7 @@ export default function HeroStatement({ bioAge }: Props) {
     }}>
       <div>
         <h1 style={{
-          fontSize: 56,
+          fontSize: '3.5rem',
           fontWeight: 200,
           lineHeight: 1.0,
           letterSpacing: '-0.04em',
@@ -43,7 +43,7 @@ export default function HeroStatement({ bioAge }: Props) {
           .
         </h1>
         <p style={{
-          fontSize: 14,
+          fontSize: '0.875rem',
           color: 'var(--color-ink-3)',
           maxWidth: 460,
           lineHeight: 1.6,

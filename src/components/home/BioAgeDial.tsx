@@ -73,7 +73,7 @@ export default function BioAgeDial({ value, chronoAge, delta }: Props) {
           Âge biologique
         </p>
         <p style={{
-          fontSize: 84,
+          fontSize: '5.25rem',
           fontWeight: 200,
           lineHeight: 0.9,
           letterSpacing: '-0.05em',
