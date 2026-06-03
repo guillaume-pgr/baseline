@@ -65,14 +65,7 @@ export default function OnboardingPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const validateStep3 = () => {
-    const newErrors: Record<string, string> = {}
-    if (!formData.mode) {
-      newErrors.mode = 'Sélectionne un mode'
-    }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+  const validateStep3 = () => true
 
   const handleNext = () => {
     if (step === 1 && validateStep1()) {
@@ -97,7 +90,11 @@ export default function OnboardingPage() {
         return
       }
 
-      // Create profile in Supabase
+      // Retrieve CGV acceptance timestamp stored during signup
+      const cgvAcceptedAt = sessionStorage.getItem('lyvio.cgv_accepted_at') || new Date().toISOString()
+      sessionStorage.removeItem('lyvio.cgv_accepted_at')
+
+      // Create profile in Supabase — status pending by default
       const { error } = await supabase.from('profiles').insert({
         user_id: user.id,
         first_name: formData.firstName,
@@ -105,7 +102,9 @@ export default function OnboardingPage() {
         birth_date: formData.birthDate || null,
         sex: (formData.sex as 'M' | 'F') || null,
         height_cm: formData.heightCm ? Number(formData.heightCm) : null,
-        current_mode: formData.mode as 'demo' | 'real',
+        current_mode: 'demo',
+        status: 'pending',
+        cgv_accepted_at: cgvAcceptedAt,
       } as any)
 
       if (error) {
@@ -265,7 +264,7 @@ export default function OnboardingPage() {
           </form>
         )}
 
-        {/* Step 3 — Mode Selection */}
+        {/* Step 3 — Confirmation */}
         {step === 3 && (
           <form
             onSubmit={e => {
@@ -273,86 +272,34 @@ export default function OnboardingPage() {
               handleComplete()
             }}
           >
-            <h1 className="font-manrope font-light text-4xl mb-8">Comment veux-tu commencer ?</h1>
+            <h1 className="font-manrope font-light text-4xl mb-4">Presque prêt !</h1>
+            <p className="text-ink-3 text-sm mb-8" style={{ lineHeight: 1.6 }}>
+              Ton compte est en cours de validation. En attendant, explore Lyvio avec un profil démo.
+            </p>
 
-            <div className="space-y-4 mb-8">
-              {/* Demo Mode Card */}
-              <label className="flex cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="demo"
-                  checked={formData.mode === 'demo'}
-                  onChange={handleInputChange}
-                  className="sr-only"
-                />
-                <div
-                  className={`flex-1 p-5 border-2 rounded-lg transition ${
-                    formData.mode === 'demo'
-                      ? 'border-aqua bg-aqua/5'
-                      : 'border-line hover:border-ink-3'
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="text-2xl mt-0.5">✨</div>
-                    <div className="flex-1">
-                      <div className="font-medium text-ink mb-1">Explorer en mode démo</div>
-                      <div className="text-sm text-ink-3">
-                        Voir l'app avec un profil similaire
-                      </div>
-                      <div className="text-xs text-ink-4 mt-2">
-                        Découvre toutes les fonctionnalités avec les données d'un profil démo.
-                        Aucun import requis.
-                      </div>
-                      {formData.mode === 'demo' && (
-                        <div className="text-xs text-aqua font-medium mt-3">✓ Recommandé</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </label>
-
-              {/* Real Mode Card */}
-              <label className="flex cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="real"
-                  checked={formData.mode === 'real'}
-                  onChange={handleInputChange}
-                  className="sr-only"
-                />
-                <div
-                  className={`flex-1 p-5 border-2 rounded-lg transition ${
-                    formData.mode === 'real'
-                      ? 'border-ink bg-ink/2'
-                      : 'border-line hover:border-ink-3'
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="text-2xl mt-0.5">📤</div>
-                    <div className="flex-1">
-                      <div className="font-medium text-ink mb-1">Importer mes données</div>
-                      <div className="text-sm text-ink-3">
-                        Commencer avec mes vraies données
-                      </div>
-                      <div className="text-xs text-ink-4 mt-2">
-                        Importe ton bilan sanguin ou connecte un appareil maintenant.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </label>
+            {/* Pending status card */}
+            <div style={{
+              backgroundColor: 'var(--color-lichen-soft)',
+              border: '1px solid var(--color-lichen)',
+              borderRadius: 12,
+              padding: '16px 20px',
+              marginBottom: 24,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#3d5c2d', marginBottom: 6 }}>
+                Compte en attente de validation
+              </div>
+              <p style={{ fontSize: 11.5, color: '#3d5c2d', lineHeight: 1.55, margin: 0 }}>
+                Nous activons chaque compte manuellement pour garantir la qualité de l'expérience.
+                Tu recevras un email dès que ton accès sera prêt.
+              </p>
             </div>
-
-            {errors.mode && <p className="text-rust text-sm mb-6 text-center">{errors.mode}</p>}
 
             <button
               type="submit"
               disabled={isLoading}
               className="w-full bg-black text-white py-2 rounded-lg font-medium hover:bg-ink disabled:opacity-50 transition"
             >
-              {isLoading ? 'Création...' : 'Terminer'}
+              {isLoading ? 'Création...' : 'Explorer le mode démo'}
             </button>
           </form>
         )}
