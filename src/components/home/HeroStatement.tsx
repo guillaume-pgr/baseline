@@ -25,8 +25,8 @@ export default function HeroStatement({ bioAge }: Props) {
           marginBottom: 28,
           maxWidth: 540,
         }}>
-          Ton corps performe<br />
-          comme un{' '}
+          Biologiquement,<br />
+          tu as{' '}
           <em style={{ fontStyle: 'normal', position: 'relative', whiteSpace: 'nowrap' }}>
             <strong style={{ fontWeight: 700 }}>
               {bioAge.value.toString().replace('.', ',')} ans
