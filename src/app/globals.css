@@ -61,6 +61,30 @@
   }
 }
 
+/* Landing page animations */
+@keyframes blob-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(40px, -30px) scale(1.08); }
+  66%       { transform: translate(-30px, 40px) scale(0.95); }
+}
+@keyframes ring-spin {
+  from { transform: rotate(-90deg); }
+  to   { transform: rotate(270deg); }
+}
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);
+}
+.landing-reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+.ring-spin {
+  transform-origin: 150px 150px;
+  animation: ring-spin 40s linear infinite;
+}
+
 /* Mobile gate: show blocking screen, hide app below 900px */
 @media (max-width: 899px) {
   .mobile-gate {

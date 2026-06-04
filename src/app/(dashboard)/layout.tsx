@@ -3,6 +3,7 @@ import CompanionPanel from '@/components/CompanionPanel'
 import DemoModeBanner from '@/components/DemoModeBanner'
 import AppFooter from '@/components/AppFooter'
 import RejectedGate from '@/components/RejectedGate'
+import MobileGate from '@/components/MobileGate'
 import { PersonaProvider } from '@/lib/context/PersonaContext'
 import { SessionProvider } from '@/lib/context/SessionContext'
 
@@ -12,6 +13,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
+    <MobileGate>
     <SessionProvider>
       <PersonaProvider>
         <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
@@ -27,5 +29,6 @@ export default function DashboardLayout({
         </div>
       </PersonaProvider>
     </SessionProvider>
+    </MobileGate>
   )
 }
