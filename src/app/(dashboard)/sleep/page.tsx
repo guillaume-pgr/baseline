@@ -114,7 +114,7 @@ export default function SleepPage() {
     return <LockedPageOverlay feature="Sommeil & HRV" onViewDemo={() => switchDemo('john')} />
   }
 
-  if (!data) {
+  if (!data || !data.sleepData) {
     return (
       <div style={{ padding: '32px 56px 80px' }}>
         <EmptyState

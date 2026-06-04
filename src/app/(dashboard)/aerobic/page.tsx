@@ -87,7 +87,7 @@ export default function AerobicPage() {
     return <LockedPageOverlay feature="Capacité aérobie" onViewDemo={() => switchDemo('john')} />
   }
 
-  if (!data) {
+  if (!data || !data.aerobicData) {
     return (
       <div style={{ padding: '32px 56px 80px' }}>
         <EmptyState

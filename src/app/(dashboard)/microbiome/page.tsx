@@ -92,7 +92,7 @@ export default function MicrobiomePage() {
     return <LockedPageOverlay feature="Microbiote" onViewDemo={() => switchDemo('john')} />
   }
 
-  if (!data) {
+  if (!data || !data.microbiomeData) {
     return (
       <div style={{ padding: '32px 56px 80px' }}>
         <EmptyState

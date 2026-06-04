@@ -205,7 +205,7 @@ export default function CompositionPage() {
     return <LockedPageOverlay feature="Composition corporelle" onViewDemo={() => switchDemo('john')} />
   }
 
-  if (!data) {
+  if (!data || !data.compositionData) {
     return (
       <div style={{ padding: '32px 56px 80px' }}>
         <EmptyState

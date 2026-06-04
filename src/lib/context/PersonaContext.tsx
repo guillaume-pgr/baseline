@@ -7,6 +7,8 @@ import { jane } from '@/data/seed-jane'
 import { bloodCategories as johnBloodCategories, BILAN_DATES } from '@/data/bloodwork-data'
 import { bloodCategoriesR as janeBloodCategories, BILAN_DATES_R } from '@/data/bloodwork-jane'
 import { useSession } from './SessionContext'
+import { useRealBloodPanels } from './useRealBloodPanels'
+import { adaptRealData } from './realDataAdapter'
 import { createClient } from '@/lib/supabase/client'
 import { ADMIN_EMAIL } from '@/lib/config'
 
@@ -120,10 +122,20 @@ export function usePersonaContext() {
   return useContext(PersonaContext)
 }
 
-// Full persona data — null when in real mode (no data yet)
+// Full persona data — same shape in both demo and real mode.
+// In real mode, adapts DB data to the exact same structure as demo seeds.
 export function usePersonaData() {
-  const { state } = usePersonaContext()
-  if (state.mode === 'real') return null
+  const { state }                = usePersonaContext()
+  const { profile }              = useSession()
+  const { panels, isLoading }    = useRealBloodPanels()
+
+  if (state.mode === 'real') {
+    // Still loading real data → return null (pages show loading/empty state)
+    if (isLoading || panels.length === 0) return null
+    // Adapt real DB data to the exact same PersonaData shape as demo seeds
+    return adaptRealData(profile, panels)
+  }
+
   if (state.demoId === 'jane') {
     return {
       ...jane,
