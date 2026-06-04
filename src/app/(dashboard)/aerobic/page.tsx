@@ -37,6 +37,15 @@ function VO2Gauge({ vo2Value }: { vo2Value: number }) {
   )
 }
 
+// ─── Zone explanations ────────────────────────────────────────────────────────
+const ZONE_EXPLANATIONS: Record<string, string> = {
+  Z1: `Effort très léger. Favorise la récupération active et la circulation sans fatigue.`,
+  Z2: `Base de l'endurance. Améliore l'utilisation des graisses et la santé cardiovasculaire de fond.`,
+  Z3: `Effort modéré soutenu. Développe l'efficacité aérobie et repousse le seuil.`,
+  Z4: `Proche du seuil lactique. Repousse la limite avant l'accumulation de fatigue.`,
+  Z5: `Effort maximal. Sollicite la capacité aérobie maximale, à doser avec récupération.`,
+}
+
 // ─── Zone table ───────────────────────────────────────────────────────────────
 function ZoneTable({ zones }: { zones: Array<{ zone: string; name: string; bpm: string; color: string; pct: number }> }) {
   return (
@@ -45,17 +54,23 @@ function ZoneTable({ zones }: { zones: Array<{ zone: string; name: string; bpm: 
         Zones cardio · 90 jours
       </p>
       {zones.map(z => (
-        <div key={z.zone} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 90px 60px', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--color-line)' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: z.color }}>{z.zone}</span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>{z.name}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-ink-4)' }}>{z.bpm} bpm</div>
+        <div key={z.zone} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--color-line)' }}>
+          {/* Left 2/3 — condensed zone info */}
+          <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 80px 48px', gap: 10, alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: z.color }}>{z.zone}</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500 }}>{z.name}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)' }}>{z.bpm} bpm</div>
+            </div>
+            <div style={{ height: 5, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${z.pct}%`, backgroundColor: z.color, borderRadius: 999 }} />
+            </div>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-ink-3)', textAlign: 'right' }}>{z.pct}%</span>
           </div>
-          {/* Bar */}
-          <div style={{ height: 5, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${z.pct}%`, backgroundColor: z.color, borderRadius: 999 }} />
-          </div>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-ink-3)', textAlign: 'right' }}>{z.pct}%</span>
+          {/* Right 1/3 — explanation */}
+          <p style={{ fontSize: 11, color: 'var(--color-ink-3)', lineHeight: 1.55, margin: 0, paddingLeft: 16, borderLeft: '1px solid var(--color-line)' }}>
+            {ZONE_EXPLANATIONS[z.zone]}
+          </p>
         </div>
       ))}
     </div>
