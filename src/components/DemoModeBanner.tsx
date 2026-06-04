@@ -2,13 +2,23 @@
 
 import { useState } from 'react'
 import { usePersonaContext } from '@/lib/context/PersonaContext'
+import { useAccount } from '@/lib/context/useAccount'
 import ComingSoonModal from '@/components/ComingSoonModal'
 
 export default function DemoModeBanner() {
-  const { state } = usePersonaContext()
+  const { state, setReal } = usePersonaContext()
+  const { canSwitchToReal } = useAccountSwitchable()
   const [comingSoonOpen, setComingSoonOpen] = useState(false)
 
   if (state.mode !== 'demo') return null
+
+  const handleRealMode = () => {
+    if (canSwitchToReal) {
+      setReal()
+    } else {
+      setComingSoonOpen(true)
+    }
+  }
 
   return (
     <>
@@ -22,15 +32,11 @@ export default function DemoModeBanner() {
         justifyContent: 'space-between',
         gap: 16,
       }}>
-        <span style={{
-          fontFamily: 'Manrope, sans-serif',
-          fontSize: 13,
-          color: 'var(--color-ink)',
-        }}>
+        <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 13, color: 'var(--color-ink)' }}>
           Mode projection — données fictives pour démonstration
         </span>
         <button
-          onClick={() => setComingSoonOpen(true)}
+          onClick={handleRealMode}
           style={{
             fontFamily: 'Manrope, sans-serif',
             fontSize: 12,
@@ -43,16 +49,18 @@ export default function DemoModeBanner() {
             color: 'var(--color-ink)',
             transition: 'background-color 0.15s',
           }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 0, 0, 0.12)'
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 0, 0, 0.08)'
-          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 0, 0, 0.12)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 0, 0, 0.08)' }}
         >
           Passer en mode réel
         </button>
       </div>
     </>
   )
+}
+
+// Helper hook — can this user switch to real mode?
+function useAccountSwitchable() {
+  const { isAdmin, isFree, isPremium } = useAccount()
+  return { canSwitchToReal: isAdmin || isFree || isPremium }
 }
