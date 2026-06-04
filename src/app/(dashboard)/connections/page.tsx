@@ -1,3 +1,6 @@
+'use client'
+
+import { usePersonaContext } from '@/lib/context/PersonaContext'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import { IconPlugConnected, IconRefresh, IconAlertCircle, IconPlus } from '@tabler/icons-react'
 
@@ -142,12 +145,17 @@ function AvailableRow({ d }: { d: typeof AVAILABLE[0] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ConnectionsPage() {
+  const { state } = usePersonaContext()
+  const isDemo = state.mode === 'demo'
+
   return (
     <div style={{ padding: '32px 56px 80px' }}>
       <PageHeader
         section="Appareils connectés"
         title={<>Appareils <strong style={{ fontWeight: 700 }}>connectés</strong></>}
-        sub="4 sources actives · synchronisation automatique. Withings, Garmin et Oura en direct — Apple Health en pause depuis 3 jours."
+        sub={isDemo
+          ? '4 sources actives (mode démo) · synchronisation automatique.'
+          : 'Connecte tes appareils pour importer tes données en temps réel.'}
         actions={
           <Btn primary>
             <IconPlus size={14} />
@@ -156,15 +164,30 @@ export default function ConnectionsPage() {
         }
       />
 
-      {/* Active devices */}
-      <div style={{ marginBottom: 40 }}>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 16 }}>
-          Sources actives · {ACTIVE.length} appareils
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-          {ACTIVE.map(d => <DeviceCard key={d.name} d={d} />)}
+      {/* Active devices — demo only */}
+      {isDemo && (
+        <div style={{ marginBottom: 40 }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 16 }}>
+            Sources actives (démo) · {ACTIVE.length} appareils
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+            {ACTIVE.map(d => <DeviceCard key={d.name} d={d} />)}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Real mode: no connections yet */}
+      {!isDemo && (
+        <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '40px 32px', marginBottom: 40, textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <IconPlugConnected size={20} color="var(--color-ink-4)" />
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 8, color: 'var(--color-ink)' }}>Aucun appareil connecté</p>
+          <p style={{ fontSize: 13, color: 'var(--color-ink-3)', lineHeight: 1.6, maxWidth: 340, margin: '0 auto' }}>
+            Connecte ta montre, ta balance ou ton anneau pour importer automatiquement tes données.
+          </p>
+        </div>
+      )}
 
       {/* Available devices */}
       <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px' }}>
