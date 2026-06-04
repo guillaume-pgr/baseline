@@ -1,8 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { IconChevronDown, IconChevronUp, IconLock } from '@tabler/icons-react'
 import { useAccount } from '@/lib/context/useAccount'
+import { usePathname } from 'next/navigation'
+
+type ChatMessage = { role: 'user' | 'ai'; text: string }
 
 // ─── FAQ data ─────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
@@ -91,6 +94,62 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export default function CompanionPanel() {
   const [tab, setTab] = useState<'faq' | 'chat'>('faq')
   const { canUseChat } = useAccount()
+  const pathname = usePathname()
+
+  // Chat state
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [inputValue, setInputValue] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [chatError, setChatError] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSend = async () => {
+    const msg = inputValue.trim()
+    if (!msg || isStreaming) return
+    setInputValue('')
+    setChatError('')
+    setMessages(prev => [...prev, { role: 'user', text: msg }])
+    setIsStreaming(true)
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, context: pathname }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        setChatError(data.error || 'Erreur serveur')
+        setIsStreaming(false)
+        return
+      }
+
+      // Start streaming
+      setMessages(prev => [...prev, { role: 'ai', text: '' }])
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value)
+        setMessages(prev => {
+          const updated = [...prev]
+          updated[updated.length - 1] = { role: 'ai', text: updated[updated.length - 1].text + chunk }
+          return updated
+        })
+      }
+    } catch {
+      setChatError('Connexion impossible. Réessaie.')
+    } finally {
+      setIsStreaming(false)
+    }
+  }
 
   return (
     <aside
@@ -158,55 +217,66 @@ export default function CompanionPanel() {
             ))}
           </div>
         ) : canUseChat ? (
-          /* ─── Premium / admin — chat débloqué ─── */
+          /* ─── Premium / admin — chat actif ─── */
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Premium notice */}
-            <div style={{
-              margin: '12px 0 8px',
-              padding: '10px 14px',
-              backgroundColor: 'var(--color-lichen-soft)',
-              borderRadius: 8,
-              fontSize: 11,
-              color: '#3d5c2d',
-              lineHeight: 1.5,
-            }}>
-              Chat IA · 1 question par jour. Réponses à titre informatif uniquement — ne remplace pas un avis médical.
+            {/* Notice */}
+            <div style={{ margin: '12px 0 8px', padding: '10px 14px', backgroundColor: 'var(--color-lichen-soft)', borderRadius: 8, fontSize: 11, color: '#3d5c2d', lineHeight: 1.5 }}>
+              Chat IA · 1 question par jour. Réponses éducatives uniquement — ne remplace pas un avis médical.
             </div>
 
-            {/* Empty state */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px 8px', textAlign: 'center' }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: 'var(--color-aqua-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-aqua)' }}>AI</span>
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--color-ink-3)', lineHeight: 1.55, maxWidth: 220 }}>
-                Pose une question sur tes biomarqueurs ou ton état de forme.
-              </p>
-              <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-ink-4)' }}>
-                Bientôt disponible — MODIF 6
-              </p>
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 8, paddingBottom: 4 }}>
+              {messages.length === 0 ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px 8px', textAlign: 'center' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: 'var(--color-aqua-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-aqua)' }}>AI</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: 'var(--color-ink-3)', lineHeight: 1.55, maxWidth: 220 }}>
+                    Pose une question sur tes biomarqueurs ou ton état de forme.
+                  </p>
+                </div>
+              ) : (
+                messages.map((msg, i) => (
+                  <div key={i} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', gap: 8, alignItems: 'flex-start' }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, backgroundColor: msg.role === 'user' ? 'var(--color-ink)' : 'var(--color-aqua-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: msg.role === 'user' ? 'var(--color-bg)' : 'var(--color-aqua)' }}>
+                        {msg.role === 'user' ? 'T' : 'AI'}
+                      </span>
+                    </div>
+                    <div style={{ maxWidth: '82%', padding: '9px 12px', borderRadius: msg.role === 'user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px', backgroundColor: msg.role === 'user' ? 'var(--color-surface-3)' : 'var(--color-aqua-soft)', fontSize: 12, lineHeight: 1.55, color: 'var(--color-ink)', whiteSpace: 'pre-wrap' }}>
+                      {msg.text}
+                      {msg.role === 'ai' && isStreaming && i === messages.length - 1 && (
+                        <span style={{ display: 'inline-block', width: 6, height: 12, backgroundColor: 'var(--color-aqua)', marginLeft: 3, borderRadius: 1, animation: 'pulse-dot 1s infinite' }} />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Active input */}
+            {chatError && (
+              <p style={{ fontSize: 11, color: 'var(--color-rust)', padding: '4px 0 8px', textAlign: 'center' }}>{chatError}</p>
+            )}
+
+            {/* Input */}
             <div style={{ paddingTop: 8, paddingBottom: 12 }}>
-              <div style={{
-                display: 'flex', gap: 8,
-                padding: '10px 12px',
-                backgroundColor: 'var(--color-surface-2)',
-                borderRadius: 10,
-                border: '1px solid var(--color-line-2)',
-              }}>
+              <div style={{ display: 'flex', gap: 8, padding: '10px 12px', backgroundColor: 'var(--color-surface-2)', borderRadius: 10, border: '1px solid var(--color-line-2)' }}>
                 <input
-                  placeholder="Pose ta question…"
-                  style={{
-                    flex: 1, background: 'none', border: 'none', outline: 'none',
-                    fontSize: 12, color: 'var(--color-ink)', fontFamily: 'var(--font-sans)',
-                    cursor: 'text',
-                  }}
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+                  placeholder={isStreaming ? 'En cours…' : 'Pose ta question…'}
+                  disabled={isStreaming}
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--color-ink)', fontFamily: 'var(--font-sans)', cursor: isStreaming ? 'default' : 'text' }}
                 />
-                <button style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--color-ink-3)', fontSize: 16, padding: '0 4px',
-                }}>→</button>
+                <button
+                  onClick={handleSend}
+                  disabled={isStreaming || !inputValue.trim()}
+                  style={{ background: 'none', border: 'none', cursor: isStreaming || !inputValue.trim() ? 'default' : 'pointer', color: isStreaming || !inputValue.trim() ? 'var(--color-ink-5)' : 'var(--color-ink)', fontSize: 16, padding: '0 4px', transition: 'color 0.15s' }}
+                >
+                  →
+                </button>
               </div>
             </div>
           </div>
