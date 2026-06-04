@@ -157,67 +157,81 @@ export default function CompanionPanel() {
               <FaqItem key={item.q} q={item.q} a={item.a} />
             ))}
           </div>
-        ) : (
+        ) : canUseChat ? (
+          /* ─── Premium / admin — chat débloqué ─── */
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Bandeau abonnement — affiché selon le statut réel */}
-            {!canUseChat && (
-              <div style={{
-                margin: '12px 0 8px',
-                padding: '10px 14px',
-                backgroundColor: 'var(--color-amber-soft)',
-                borderRadius: 8,
-                fontSize: 11,
-                color: 'var(--color-ink-2)',
-                lineHeight: 1.5,
-              }}>
-                Le chat interactif nécessite un abonnement Lyvio+{' '}
-                <span style={{ color: 'var(--color-ink-3)' }}>(bientôt disponible)</span>
-              </div>
-            )}
+            {/* Premium notice */}
+            <div style={{
+              margin: '12px 0 8px',
+              padding: '10px 14px',
+              backgroundColor: 'var(--color-lichen-soft)',
+              borderRadius: 8,
+              fontSize: 11,
+              color: '#3d5c2d',
+              lineHeight: 1.5,
+            }}>
+              Chat IA · 1 question par jour. Réponses à titre informatif uniquement — ne remplace pas un avis médical.
+            </div>
 
-            {/* Pre-scripted demo conversation */}
+            {/* Empty state */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px 8px', textAlign: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: 'var(--color-aqua-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-aqua)' }}>AI</span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--color-ink-3)', lineHeight: 1.55, maxWidth: 220 }}>
+                Pose une question sur tes biomarqueurs ou ton état de forme.
+              </p>
+              <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-ink-4)' }}>
+                Bientôt disponible — MODIF 6
+              </p>
+            </div>
+
+            {/* Active input */}
+            <div style={{ paddingTop: 8, paddingBottom: 12 }}>
+              <div style={{
+                display: 'flex', gap: 8,
+                padding: '10px 12px',
+                backgroundColor: 'var(--color-surface-2)',
+                borderRadius: 10,
+                border: '1px solid var(--color-line-2)',
+              }}>
+                <input
+                  placeholder="Pose ta question…"
+                  style={{
+                    flex: 1, background: 'none', border: 'none', outline: 'none',
+                    fontSize: 12, color: 'var(--color-ink)', fontFamily: 'var(--font-sans)',
+                    cursor: 'text',
+                  }}
+                />
+                <button style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--color-ink-3)', fontSize: 16, padding: '0 4px',
+                }}>→</button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* ─── Free / pending — chat verrouillé ─── */
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{
+              margin: '12px 0 8px', padding: '10px 14px',
+              backgroundColor: 'var(--color-amber-soft)', borderRadius: 8,
+              fontSize: 11, color: 'var(--color-ink-2)', lineHeight: 1.5,
+            }}>
+              Le chat interactif nécessite un abonnement Lyvio+{' '}
+              <span style={{ color: 'var(--color-ink-3)' }}>(bientôt disponible)</span>
+            </div>
+
+            {/* Scripted demo */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
               {DEMO_MESSAGES.map((msg, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-                    gap: 8,
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  {/* Avatar */}
-                  <div style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    flexShrink: 0,
-                    backgroundColor: msg.role === 'user' ? 'var(--color-ink)' : 'var(--color-aqua-soft)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <span style={{
-                      fontSize: 9,
-                      fontFamily: 'var(--font-mono)',
-                      color: msg.role === 'user' ? 'var(--color-bg)' : 'var(--color-aqua)',
-                      letterSpacing: '0.02em',
-                    }}>
+                <div key={i} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', gap: 8, alignItems: 'flex-start' }}>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, backgroundColor: msg.role === 'user' ? 'var(--color-ink)' : 'var(--color-aqua-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: msg.role === 'user' ? 'var(--color-bg)' : 'var(--color-aqua)', letterSpacing: '0.02em' }}>
                       {msg.role === 'user' ? 'T' : 'AI'}
                     </span>
                   </div>
-
-                  {/* Bubble */}
-                  <div style={{
-                    maxWidth: '82%',
-                    padding: '9px 12px',
-                    borderRadius: msg.role === 'user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px',
-                    backgroundColor: msg.role === 'user' ? 'var(--color-surface-3)' : 'var(--color-aqua-soft)',
-                    fontSize: 12,
-                    lineHeight: 1.55,
-                    color: 'var(--color-ink)',
-                  }}>
+                  <div style={{ maxWidth: '82%', padding: '9px 12px', borderRadius: msg.role === 'user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px', backgroundColor: msg.role === 'user' ? 'var(--color-surface-3)' : 'var(--color-aqua-soft)', fontSize: 12, lineHeight: 1.55, color: 'var(--color-ink)' }}>
                     {msg.text}
                   </div>
                 </div>
@@ -226,28 +240,11 @@ export default function CompanionPanel() {
 
             {/* Disabled input */}
             <div style={{ marginTop: 'auto', paddingTop: 16, paddingBottom: 12 }}>
-              <div style={{
-                display: 'flex',
-                gap: 8,
-                padding: '10px 12px',
-                backgroundColor: 'var(--color-surface-2)',
-                borderRadius: 10,
-                border: '1px solid var(--color-line)',
-                opacity: 0.6,
-              }}>
+              <div style={{ display: 'flex', gap: 8, padding: '10px 12px', backgroundColor: 'var(--color-surface-2)', borderRadius: 10, border: '1px solid var(--color-line)', opacity: 0.6 }}>
                 <input
                   disabled
                   placeholder="Disponible avec Lyvio+"
-                  style={{
-                    flex: 1,
-                    background: 'none',
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 12,
-                    color: 'var(--color-ink-4)',
-                    cursor: 'not-allowed',
-                    fontFamily: 'var(--font-sans)',
-                  }}
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--color-ink-4)', cursor: 'not-allowed', fontFamily: 'var(--font-sans)' }}
                 />
               </div>
             </div>
