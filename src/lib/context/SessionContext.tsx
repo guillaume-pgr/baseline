@@ -94,8 +94,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('[SessionContext] signOut error:', err)
+    }
     setUser(null)
     setProfile(null)
   }

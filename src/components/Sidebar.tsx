@@ -69,8 +69,13 @@ export default function Sidebar() {
   const showLocks = isFree && state.mode === 'real'
 
   const handleSignOut = async () => {
-    await signOut()
-    router.push('/auth/signin')
+    try {
+      await signOut()
+    } catch (err) {
+      console.error('[Sidebar] signOut error:', err)
+    }
+    // Hard redirect — clears all client state and forces server re-check
+    window.location.href = '/auth/signin'
   }
 
   return (
