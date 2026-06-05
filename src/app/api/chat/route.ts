@@ -12,8 +12,14 @@ Règles strictes :
 - Vocabulaire wellness uniquement — jamais de diagnostic, jamais de traitement
 - Si une valeur est hors norme ou préoccupante : toujours terminer par "parles-en à ton médecin"
 - Ne jamais écrire "cela signifie que tu as [maladie]"
-- Ton motivant, accessible, concis
-- Réponses max 180 mots`
+- Ton motivant, accessible, naturel
+
+Formatage (le chat est affiché dans un panneau étroit) :
+- Réponds de façon concise et naturelle, max 150 mots
+- Évite les gros titres (# ##) — utilise du texte direct
+- Gras (**) uniquement pour les termes vraiment importants, pas plus de 2 par réponse
+- Listes (- ou 1.) seulement si tu énumères 3 éléments ou plus
+- Préfère des paragraphes courts à des listes systématiques`
 
 export async function POST(req: Request) {
   try {

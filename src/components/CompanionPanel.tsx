@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { IconChevronDown, IconChevronUp, IconLock } from '@tabler/icons-react'
 import { useAccount } from '@/lib/context/useAccount'
 import { usePathname } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
 
 type ChatMessage = { role: 'user' | 'ai'; text: string }
 
@@ -243,10 +244,16 @@ export default function CompanionPanel() {
                         {msg.role === 'user' ? 'T' : 'AI'}
                       </span>
                     </div>
-                    <div style={{ maxWidth: '82%', padding: '9px 12px', borderRadius: msg.role === 'user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px', backgroundColor: msg.role === 'user' ? 'var(--color-surface-3)' : 'var(--color-aqua-soft)', fontSize: 12, lineHeight: 1.55, color: 'var(--color-ink)', whiteSpace: 'pre-wrap' }}>
-                      {msg.text}
-                      {msg.role === 'ai' && isStreaming && i === messages.length - 1 && (
-                        <span style={{ display: 'inline-block', width: 6, height: 12, backgroundColor: 'var(--color-aqua)', marginLeft: 3, borderRadius: 1, animation: 'pulse-dot 1s infinite' }} />
+                    <div style={{ maxWidth: '82%', padding: '9px 12px', borderRadius: msg.role === 'user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px', backgroundColor: msg.role === 'user' ? 'var(--color-surface-3)' : 'var(--color-aqua-soft)', fontSize: 12, lineHeight: 1.55, color: 'var(--color-ink)' }}>
+                      {msg.role === 'user' ? (
+                        msg.text
+                      ) : (
+                        <div className="chat-md">
+                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                          {isStreaming && i === messages.length - 1 && (
+                            <span style={{ display: 'inline-block', width: 6, height: 12, backgroundColor: 'var(--color-aqua)', marginLeft: 3, borderRadius: 1, animation: 'pulse-dot 1s infinite', verticalAlign: 'middle' }} />
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
