@@ -3,8 +3,9 @@ export interface BloodMarkerData {
   markerName: string
   value: number
   unit: string
-  refMin?: number
-  refMax?: number
+  refMin?: number | null
+  refMax?: number | null
+  organSystem?: string | null
 }
 
 export interface BloodPanelImport {
@@ -13,49 +14,21 @@ export interface BloodPanelImport {
   markers: BloodMarkerData[]
 }
 
-// Parse CSV format: marker_code, marker_name, value, unit, ref_min, ref_max
-export function parseBloodPanelCSV(csvContent: string): BloodPanelImport {
-  const lines = csvContent.trim().split('\n')
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+// Valid organ systems — kept in sync with realDataAdapter GROUP_COLORS
+export const ORGAN_SYSTEMS = [
+  'hematologie',
+  'lipides',
+  'glucides',
+  'foie',
+  'reins',
+  'thyroide',
+  'vitamines',
+  'mineraux',
+  'inflammation',
+  'autres',
+] as const
 
-  const markers: BloodMarkerData[] = []
-  let panelDate = new Date().toISOString().split('T')[0]
-  let labName = 'Manuel'
-
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue
-
-    const values = lines[i].split(',').map(v => v.trim())
-    const row: Record<string, string> = {}
-
-    headers.forEach((header, idx) => {
-      row[header] = values[idx] || ''
-    })
-
-    if (row['marker_code'] && row['value']) {
-      markers.push({
-        markerCode: row['marker_code'],
-        markerName: row['marker_name'] || row['marker_code'],
-        value: parseFloat(row['value']),
-        unit: row['unit'] || '',
-        refMin: row['ref_min'] ? parseFloat(row['ref_min']) : undefined,
-        refMax: row['ref_max'] ? parseFloat(row['ref_max']) : undefined,
-      })
-    }
-  }
-
-  if (markers.length === 0) {
-    throw new Error('Aucun marqueur trouvé dans le fichier CSV')
-  }
-
-  return {
-    panelDate,
-    labName,
-    markers,
-  }
-}
-
-// Validate blood panel data
+// Validate a blood panel before saving (used by the import route)
 export function validateBloodPanel(panel: BloodPanelImport): string[] {
   const errors: string[] = []
 
@@ -65,13 +38,14 @@ export function validateBloodPanel(panel: BloodPanelImport): string[] {
 
   if (!Array.isArray(panel.markers) || panel.markers.length === 0) {
     errors.push('Au moins un marqueur requis')
+    return errors
   }
 
   panel.markers.forEach((marker, idx) => {
-    if (!marker.markerCode || !marker.markerName) {
-      errors.push(`Marqueur ${idx + 1}: code ou nom manquant`)
+    if (!marker.markerName) {
+      errors.push(`Marqueur ${idx + 1}: nom manquant`)
     }
-    if (!marker.value || isNaN(marker.value)) {
+    if (marker.value === null || marker.value === undefined || isNaN(marker.value)) {
       errors.push(`Marqueur ${idx + 1}: valeur invalide`)
     }
     if (!marker.unit) {
@@ -85,10 +59,10 @@ export function validateBloodPanel(panel: BloodPanelImport): string[] {
 // Detect marker status based on reference values
 export function getMarkerStatus(
   value: number,
-  refMin?: number,
-  refMax?: number,
+  refMin?: number | null,
+  refMax?: number | null,
 ): 'optimal' | 'warning' | 'danger' | 'low_normal' | 'high_normal' | null {
-  if (refMin === undefined || refMax === undefined) return null
+  if (refMin === undefined || refMin === null || refMax === undefined || refMax === null) return null
 
   if (value < refMin) return 'low_normal'
   if (value > refMax) return 'high_normal'

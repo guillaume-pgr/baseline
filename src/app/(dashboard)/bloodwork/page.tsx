@@ -198,7 +198,7 @@ export default function BloodworkPage() {
           title="Pas encore de prise de sang importée."
           body="Glisse un PDF de bilan sanguin. Lyvio en extrait tous les marqueurs automatiquement et te dit où tu te situes vs ta cohorte."
           primaryAction={{
-            label: 'Importer un CSV',
+            label: 'Importer un PDF',
             icon: 'upload',
             onClick: () => setImportOpen(true),
           }}

@@ -1,33 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { parseBloodPanelCSV, validateBloodPanel, getMarkerStatus } from '@/lib/health/blood-panel-parser'
+import { checkBloodPanelGate } from '@/lib/health/gating'
+import {
+  validateBloodPanel,
+  getMarkerStatus,
+  type BloodPanelImport,
+} from '@/lib/health/blood-panel-parser'
 
+// Saves a validated blood panel (markers already extracted & reviewed by the user).
+// Body: { panelDate, labName, markers: BloodMarkerData[] }
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const file = formData.get('file') as File
-
-    if (!file) {
-      return NextResponse.json({ error: 'Aucun fichier sélectionné' }, { status: 400 })
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    console.log('[api/health/import] processing file:', file.name, file.type)
-
-    // Read file content
-    const fileContent = await file.text()
-
-    // Parse based on file type
-    let bloodPanel
-    if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
-      bloodPanel = parseBloodPanelCSV(fileContent)
-    } else {
-      return NextResponse.json(
-        { error: 'Format non supporté. Accepte CSV.' },
-        { status: 400 },
-      )
+    // Gating (authoritative)
+    const gate = await checkBloodPanelGate(supabase, user)
+    if (!gate.ok) {
+      return NextResponse.json({ error: gate.error }, { status: gate.status })
     }
 
-    // Validate
+    const bloodPanel = (await request.json()) as BloodPanelImport
+
     const validationErrors = validateBloodPanel(bloodPanel)
     if (validationErrors.length > 0) {
       return NextResponse.json(
@@ -36,68 +33,46 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[api/health/import] validated, saving to Supabase...')
+    console.log('[api/health/import] saving', bloodPanel.markers.length, 'markers for profile', gate.profileId)
 
-    // Get current user
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-    }
-
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .single() as any
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profil non trouvé' }, { status: 404 })
-    }
-
-    // Create blood panel record
-    const panelResult = await (supabase
+    // Create the panel record.
+    // Supabase's generated Insert type collapses to `never` here, so we cast —
+    // same workaround used across this codebase's Supabase calls.
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const { data: panel, error: panelError } = await (supabase
       .from('blood_panels')
       .insert({
-        profile_id: profile.id,
+        profile_id: gate.profileId,
         panel_date: bloodPanel.panelDate,
-        lab_name: bloodPanel.labName || 'Manuel',
+        lab_name: bloodPanel.labName || 'Laboratoire',
+        raw_extraction: { markers: bloodPanel.markers },
         validated_at: new Date().toISOString(),
       } as any)
       .select()
       .single() as any)
 
-    const panel = panelResult.data
-    const panelError = panelResult.error
-
-    if (panelError) {
+    if (panelError || !panel) {
       console.error('[api/health/import] panel insert error:', panelError)
-      throw panelError
+      throw panelError ?? new Error('Insertion du bilan échouée')
     }
-
-    console.log('[api/health/import] panel created:', panel.id)
 
     // Insert markers
     const markersToInsert = bloodPanel.markers.map(marker => ({
       panel_id: panel.id,
-      marker_code: marker.markerCode,
+      marker_code: marker.markerCode || marker.markerName,
       marker_name: marker.markerName,
       value: marker.value,
       unit: marker.unit,
-      ref_min: marker.refMin,
-      ref_max: marker.refMax,
+      ref_min: marker.refMin ?? null,
+      ref_max: marker.refMax ?? null,
+      organ_system: marker.organSystem ?? null,
       status: getMarkerStatus(marker.value, marker.refMin, marker.refMax),
     }))
 
-    const markersResult = await (supabase
+    const { error: markersError } = await (supabase
       .from('blood_markers')
       .insert(markersToInsert as any) as any)
-
-    const markersError = markersResult.error
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     if (markersError) {
       console.error('[api/health/import] markers insert error:', markersError)
