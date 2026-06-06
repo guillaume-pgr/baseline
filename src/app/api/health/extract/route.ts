@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { getAnthropicClient } from '@/lib/anthropic'
 import { checkBloodPanelGate } from '@/lib/health/gating'
 import { ORGAN_SYSTEMS, type BloodPanelImport } from '@/lib/health/blood-panel-parser'
-
-// ANTHROPIC_API_KEY is read automatically from the environment.
-const anthropic = new Anthropic()
 
 // Caps — protect tokens & latency
 const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10 MB
@@ -115,6 +113,8 @@ export async function POST(request: NextRequest) {
         : { type: 'image' as const, source: { type: 'base64' as const, media_type: mediaType as 'image/png' | 'image/jpeg', data: base64 } }
 
     console.log('[api/health/extract] calling Claude Vision for', file.name, mediaType, file.size, 'bytes')
+
+    const anthropic = getAnthropicClient()
 
     let message
     try {

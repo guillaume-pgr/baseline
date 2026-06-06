@@ -1,9 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { getAnthropicClient } from '@/lib/anthropic'
 import { ADMIN_EMAIL } from '@/lib/config'
-
-// ANTHROPIC_API_KEY must be set in .env.local and in Vercel Environment Variables
-const anthropic = new Anthropic()  // reads ANTHROPIC_API_KEY automatically
 
 const SYSTEM_PROMPT = `Tu es l'assistant Lyvio, un outil éducatif de bien-être.
 Tu aides les utilisateurs à comprendre leurs biomarqueurs dans un langage simple, positif et pédagogique.
@@ -77,6 +74,8 @@ export async function POST(req: Request) {
       profile?.first_name ? `L'utilisateur s'appelle ${profile.first_name}.` : '',
       context ? `Contexte de la page : ${context}` : '',
     ].filter(Boolean).join('\n\n')
+
+    const anthropic = getAnthropicClient()
 
     // Use messages.create with stream:true so the API request is made eagerly.
     // This means auth/model errors are caught here (before headers are sent)
