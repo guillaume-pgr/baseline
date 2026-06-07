@@ -6,6 +6,10 @@ export interface BloodMarkerData {
   refMin?: number | null
   refMax?: number | null
   organSystem?: string | null
+  explanation?: string | null
+  // true when the marker was not found in the local reference (MODIF 2) —
+  // its unit/thresholds may need a manual touch in the review screen.
+  needsReview?: boolean
 }
 
 export interface BloodPanelImport {

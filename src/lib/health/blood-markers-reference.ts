@@ -263,3 +263,41 @@ export function matchMarker(name: string | null | undefined): MarkerReference | 
   if (!name) return undefined
   return REFERENCE_INDEX.get(normalize(name))
 }
+
+// Champs complétés de façon déterministe depuis le référentiel (MODIF 2).
+export interface CompletableMarker {
+  markerCode?: string
+  markerName: string
+  value: number
+  unit?: string | null
+  refMin?: number | null
+  refMax?: number | null
+  organSystem?: string | null
+  explanation?: string | null
+  needsReview?: boolean
+}
+
+const isBlank = (s: string | null | undefined) => !s || !s.trim()
+
+/**
+ * Complète un marqueur extrait à partir du référentiel local, sans appel API :
+ * unité, seuils, catégorie et explication manquants sont remplis depuis l'entrée
+ * trouvée par matchMarker. Les valeurs déjà présentes (unité, seuils saisis) sont
+ * conservées. Un marqueur absent du référentiel est gardé tel quel et marqué
+ * `needsReview` pour être complété manuellement à l'écran de validation.
+ */
+export function completeMarkerFromReference<T extends CompletableMarker>(m: T): T {
+  const ref = matchMarker(m.markerName) ?? matchMarker(m.markerCode)
+  if (!ref) {
+    return { ...m, needsReview: true }
+  }
+  return {
+    ...m,
+    unit: isBlank(m.unit) ? ref.unit : m.unit,
+    refMin: m.refMin === null || m.refMin === undefined ? ref.refMin : m.refMin,
+    refMax: m.refMax === null || m.refMax === undefined ? ref.refMax : m.refMax,
+    organSystem: ref.category,
+    explanation: ref.explanation,
+    needsReview: false,
+  }
+}

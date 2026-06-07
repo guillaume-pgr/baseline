@@ -61,7 +61,7 @@ function MarkerRow({ m }: { m: BloodMarker }) {
 function MarkerRowExhaustive({ m }: { m: BloodMarker }) {
   const pct = Math.min(Math.max((m.value - m.range[0]) / (m.range[1] - m.range[0]), 0), 1) * 100
   const trendColor = m.trendDir === 'up' ? '#5C7A4A' : m.trendDir === 'down' ? 'var(--color-rust)' : 'var(--color-ink-3)'
-  const explanation = MARKER_EXPLANATIONS[m.id]
+  const explanation = m.explanation ?? MARKER_EXPLANATIONS[m.id]
 
   return (
     <div style={{

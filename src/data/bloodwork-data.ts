@@ -17,6 +17,9 @@ export type BloodMarker = {
   trendDir: MarkerTrendDir
   trendLabel: string
   history: [number, number, number, number, number]
+  // Optional per-marker explanation (real data: filled from the local reference).
+  // Demo markers fall back to MARKER_EXPLANATIONS by id.
+  explanation?: string
 }
 
 export type BloodCategory = {

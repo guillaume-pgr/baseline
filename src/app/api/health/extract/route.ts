@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAnthropicClient } from '@/lib/anthropic'
 import { checkBloodPanelGate } from '@/lib/health/gating'
 import { ORGAN_SYSTEMS, type BloodPanelImport } from '@/lib/health/blood-panel-parser'
+import { completeMarkerFromReference } from '@/lib/health/blood-markers-reference'
 
 // Caps — protect tokens & latency
 const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10 MB
@@ -161,12 +162,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[api/health/extract] extracted', extracted.markers.length, 'markers')
+    // Auto-complétion déterministe depuis le référentiel local (aucun appel API) :
+    // unité, seuils, catégorie et explication manquants sont remplis ici, pour
+    // que l'écran de validation arrive déjà complété.
+    const markers = extracted.markers.map(completeMarkerFromReference)
+    const unmatched = markers.filter(m => m.needsReview).length
+    console.log('[api/health/extract] extracted', markers.length, 'markers,', unmatched, 'à compléter')
 
     return NextResponse.json({
       panelDate: extracted.panelDate || new Date().toISOString().split('T')[0],
       labName: extracted.labName || 'Laboratoire',
-      markers: extracted.markers,
+      markers,
     })
   } catch (error) {
     console.error('[api/health/extract] error:', error)

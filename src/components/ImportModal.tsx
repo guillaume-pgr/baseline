@@ -21,6 +21,7 @@ interface ExtractedMarker {
   refMin?: number | null
   refMax?: number | null
   organSystem?: string | null
+  needsReview?: boolean
 }
 
 // Editable representation — numeric fields held as strings while the user reviews.
@@ -32,6 +33,7 @@ interface EditableMarker {
   refMin: string
   refMax: string
   organSystem: string
+  needsReview: boolean
 }
 
 type Step = 'select' | 'review'
@@ -104,6 +106,7 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
           refMin: m.refMin != null ? String(m.refMin) : '',
           refMax: m.refMax != null ? String(m.refMax) : '',
           organSystem: m.organSystem ?? 'autres',
+          needsReview: m.needsReview ?? false,
         })),
       )
       setStep('review')
@@ -291,7 +294,12 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
                   display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 0.7fr 0.7fr 28px',
                   gap: 8, padding: '6px 12px', alignItems: 'center', borderBottom: '1px solid var(--color-line)',
                 }}>
-                  <input value={m.markerName} onChange={e => updateMarker(idx, 'markerName', e.target.value)} style={inputCell} />
+                  <input
+                    value={m.markerName}
+                    onChange={e => updateMarker(idx, 'markerName', e.target.value)}
+                    style={m.needsReview ? { ...inputCell, borderColor: 'var(--color-amber)' } : inputCell}
+                    title={m.needsReview ? 'Marqueur non reconnu — vérifie l’unité et les seuils.' : undefined}
+                  />
                   <input value={m.value} onChange={e => updateMarker(idx, 'value', e.target.value)} style={inputCell} inputMode="decimal" />
                   <input value={m.unit} onChange={e => updateMarker(idx, 'unit', e.target.value)} style={inputCell} />
                   <input value={m.refMin} onChange={e => updateMarker(idx, 'refMin', e.target.value)} style={inputCell} inputMode="decimal" />
@@ -307,6 +315,12 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
                 </p>
               )}
             </div>
+
+            {markers.some(m => m.needsReview) && (
+              <p style={{ fontSize: 11, color: 'var(--color-amber)', marginBottom: 10 }}>
+                Certains marqueurs n’ont pas été reconnus (bordure orange) — vérifie leur unité et leurs seuils avant d’enregistrer.
+              </p>
+            )}
 
             {error && <p style={{ color: 'var(--color-rust)', fontSize: 12, marginBottom: 12 }}>{error}</p>}
 

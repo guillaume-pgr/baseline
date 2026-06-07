@@ -5,6 +5,7 @@
 
 import type { RealBloodPanelData } from './useRealBloodPanels'
 import { MARKER_EXPLANATIONS, type BloodMarker, type BloodCategory } from '@/data/bloodwork-data'
+import { matchMarker } from '@/lib/health/blood-markers-reference'
 
 // ─── Marker name normalisation → explanation key ────────────────────────────
 
@@ -80,8 +81,15 @@ function adaptMarker(m: {
   const warn = m.status === 'danger' || m.status === 'warning'
   const explanationKey = getExplanationKey(m.marker_code, m.marker_name)
 
+  // Explanation: prefer the existing curated map, else fall back to the local
+  // reference (MODIF 2) so every imported marker carries a wellness description.
+  const explanation = MARKER_EXPLANATIONS[explanationKey]
+    ?? matchMarker(m.marker_name)?.explanation
+    ?? matchMarker(m.marker_code)?.explanation
+
   return {
     id: explanationKey || m.marker_code?.toLowerCase(),
+    explanation,
     name: m.marker_name,
     context: m.organ_system?.toLowerCase() ?? m.marker_code?.toLowerCase() ?? '',
     value: m.value,
