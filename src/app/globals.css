@@ -4,6 +4,7 @@
   /* Fonts */
   --font-sans: var(--font-manrope), system-ui, sans-serif;
   --font-mono: var(--font-mono), monospace;
+  --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
 
   /* Background & Surface */
   --color-bg: #FAFAF8;

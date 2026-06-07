@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { manrope, jetbrainsMono } from "./fonts";
+import { manrope, jetbrainsMono, fraunces } from "./fonts";
 import "./globals.css";
 export const metadata: Metadata = {
   title: "Lyvio — Performance & Santé",
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${manrope.variable} ${jetbrainsMono.variable}`}>
+    <html lang="fr" className={`${manrope.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}>
       <body>{children}</body>
     </html>
   );
