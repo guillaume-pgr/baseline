@@ -228,6 +228,7 @@ export async function POST(request: NextRequest) {
       labName: panel.labName,
       patientSex: panel.patientSex,
       globalConfidence,
+      model: MODEL_EXTRACTION,
       markers,
     })
   } catch (error) {

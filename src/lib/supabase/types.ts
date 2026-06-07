@@ -375,6 +375,73 @@ export type Database = {
           created_at?: string
         }
       }
+      extraction_logs: {
+        Row: {
+          id: string
+          user_id: string
+          created_at: string
+          lab_name: string | null
+          markers_count: number
+          low_confidence_count: number
+          unmatched_markers: string[] | null
+          global_confidence: number | null
+          model: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          created_at?: string
+          lab_name?: string | null
+          markers_count?: number
+          low_confidence_count?: number
+          unmatched_markers?: string[] | null
+          global_confidence?: number | null
+          model?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          created_at?: string
+          lab_name?: string | null
+          markers_count?: number
+          low_confidence_count?: number
+          unmatched_markers?: string[] | null
+          global_confidence?: number | null
+          model?: string | null
+        }
+      }
+      extraction_corrections: {
+        Row: {
+          id: string
+          user_id: string
+          created_at: string
+          raw_name: string
+          corrected_canonical: string | null
+          raw_unit: string | null
+          corrected_unit: string | null
+          lab_name: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          created_at?: string
+          raw_name: string
+          corrected_canonical?: string | null
+          raw_unit?: string | null
+          corrected_unit?: string | null
+          lab_name?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          created_at?: string
+          raw_name?: string
+          corrected_canonical?: string | null
+          raw_unit?: string | null
+          corrected_unit?: string | null
+          lab_name?: string | null
+        }
+      }
     }
     Views: {}
     Functions: {}

@@ -7,8 +7,26 @@ import {
   type BloodPanelImport,
 } from '@/lib/health/blood-panel-parser'
 
+// Learning-loop payload (sous-étape F) — optional, best-effort logging.
+interface ExtractionMeta {
+  globalConfidence?: number | null
+  model?: string | null
+  lowConfidenceCount?: number
+  unmatchedMarkers?: string[]
+}
+interface Correction {
+  raw_name: string
+  corrected_canonical?: string | null
+  raw_unit?: string | null
+  corrected_unit?: string | null
+}
+type ImportBody = BloodPanelImport & {
+  extractionMeta?: ExtractionMeta
+  corrections?: Correction[]
+}
+
 // Saves a validated blood panel (markers already extracted & reviewed by the user).
-// Body: { panelDate, labName, markers: BloodMarkerData[] }
+// Body: { panelDate, labName, markers: BloodMarkerData[], extractionMeta?, corrections? }
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -23,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: gate.error }, { status: gate.status })
     }
 
-    const bloodPanel = (await request.json()) as BloodPanelImport
+    const bloodPanel = (await request.json()) as ImportBody
 
     const validationErrors = validateBloodPanel(bloodPanel)
     if (validationErrors.length > 0) {
@@ -80,6 +98,39 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[api/health/import] success, inserted', markersToInsert.length, 'markers')
+
+    // ─── Boucle d'apprentissage (sous-étape F) — best-effort, ne casse jamais
+    //     l'import si le logging échoue. ───────────────────────────────────────
+    try {
+      const meta = bloodPanel.extractionMeta
+      /* eslint-disable @typescript-eslint/no-explicit-any */
+      await (supabase.from('extraction_logs').insert({
+        user_id: user.id,
+        lab_name: bloodPanel.labName || null,
+        markers_count: markersToInsert.length,
+        low_confidence_count: meta?.lowConfidenceCount ?? 0,
+        unmatched_markers: meta?.unmatchedMarkers ?? [],
+        global_confidence: meta?.globalConfidence ?? null,
+        model: meta?.model ?? null,
+      } as any) as any)
+
+      const corrections = (bloodPanel.corrections ?? []).filter(c => c.raw_name)
+      if (corrections.length > 0) {
+        await (supabase.from('extraction_corrections').insert(
+          corrections.map(c => ({
+            user_id: user.id,
+            raw_name: c.raw_name,
+            corrected_canonical: c.corrected_canonical ?? null,
+            raw_unit: c.raw_unit ?? null,
+            corrected_unit: c.corrected_unit ?? null,
+            lab_name: bloodPanel.labName || null,
+          })) as any,
+        ) as any)
+      }
+      /* eslint-enable @typescript-eslint/no-explicit-any */
+    } catch (logErr) {
+      console.warn('[api/health/import] learning-loop logging skipped:', logErr instanceof Error ? logErr.message : logErr)
+    }
 
     return NextResponse.json({
       success: true,

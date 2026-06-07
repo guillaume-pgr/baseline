@@ -40,6 +40,7 @@ interface ExtractedMarker {
 
 // Editable representation — numeric fields held as strings while the user reviews.
 interface EditableMarker {
+  id: string // stable key — pour diff fiable des corrections (sous-étape F)
   markerCode: string
   markerName: string
   value: string
@@ -52,6 +53,9 @@ interface EditableMarker {
   verifyWarning: boolean
   verifyReasons: string[]
 }
+
+// Snapshot initial d'un marqueur (à l'extraction) pour repérer les corrections.
+interface MarkerSnapshot { markerName: string; value: string; unit: string }
 
 // Un marqueur à vérifier : non reconnu, recoupement échoué, ou confiance basse.
 function isFlagged(m: EditableMarker): boolean {
@@ -81,6 +85,11 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
   const [stepIdx, setStepIdx] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Boucle d'apprentissage (sous-étape F) : confiance/modèle + snapshot initial.
+  const [globalConfidence, setGlobalConfidence] = useState<number | null>(null)
+  const [model, setModel] = useState<string | null>(null)
+  const originalRef = useRef<Record<string, MarkerSnapshot>>({})
+
   // Cycle the reassuring step labels while the document is being analysed.
   // (stepIdx is reset to 0 in handleExtract before analysis starts.)
   useEffect(() => {
@@ -98,6 +107,9 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
     setPanelDate('')
     setLabName('')
     setMarkers([])
+    setGlobalConfidence(null)
+    setModel(null)
+    originalRef.current = {}
   }
 
   const handleClose = () => {
@@ -113,8 +125,8 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
       setError('Format non supporté. Accepte PDF, PNG, JPG.')
       return
     }
-    if (selected.size > 10 * 1024 * 1024) {
-      setError('Fichier trop volumineux (max 10 Mo).')
+    if (selected.size > 15 * 1024 * 1024) {
+      setError('Fichier trop volumineux (max 15 Mo).')
       return
     }
     setFile(selected)
@@ -136,21 +148,28 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
 
       setPanelDate(result.panelDate || '')
       setLabName(result.labName || '')
-      setMarkers(
-        (result.markers || []).map((m: ExtractedMarker) => ({
-          markerCode: m.markerCode ?? '',
-          markerName: m.markerName ?? '',
-          value: m.value != null ? String(m.value) : '',
-          unit: m.unit ?? '',
-          refMin: m.refMin != null ? String(m.refMin) : '',
-          refMax: m.refMax != null ? String(m.refMax) : '',
-          organSystem: m.organSystem ?? 'autres',
-          needsReview: m.needsReview ?? false,
-          confidence: m.confidence ?? 1,
-          verifyWarning: m.verifyWarning ?? false,
-          verifyReasons: m.verifyReasons ?? [],
-        })),
+      setGlobalConfidence(typeof result.globalConfidence === 'number' ? result.globalConfidence : null)
+      setModel(result.model ?? null)
+
+      const mapped: EditableMarker[] = (result.markers || []).map((m: ExtractedMarker, i: number) => ({
+        id: `m${i}`,
+        markerCode: m.markerCode ?? '',
+        markerName: m.markerName ?? '',
+        value: m.value != null ? String(m.value) : '',
+        unit: m.unit ?? '',
+        refMin: m.refMin != null ? String(m.refMin) : '',
+        refMax: m.refMax != null ? String(m.refMax) : '',
+        organSystem: m.organSystem ?? 'autres',
+        needsReview: m.needsReview ?? false,
+        confidence: m.confidence ?? 1,
+        verifyWarning: m.verifyWarning ?? false,
+        verifyReasons: m.verifyReasons ?? [],
+      }))
+      // Snapshot initial pour repérer les corrections de nom/unité.
+      originalRef.current = Object.fromEntries(
+        mapped.map(m => [m.id, { markerName: m.markerName, value: m.value, unit: m.unit }]),
       )
+      setMarkers(mapped)
       setStep('review')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'analyse')
@@ -191,12 +210,33 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
       return
     }
 
+    // Corrections (sous-étape F) : nom/unité modifiés par rapport au snapshot initial.
+    const corrections = markers.flatMap(m => {
+      const orig = originalRef.current[m.id]
+      if (!orig) return []
+      const nameChanged = orig.markerName.trim() !== m.markerName.trim()
+      const unitChanged = orig.unit.trim() !== m.unit.trim()
+      if (!nameChanged && !unitChanged) return []
+      return [{
+        raw_name: orig.markerName.trim() || m.markerName.trim(),
+        corrected_canonical: nameChanged ? m.markerName.trim() : null,
+        raw_unit: orig.unit.trim() || null,
+        corrected_unit: unitChanged ? m.unit.trim() : null,
+      }]
+    })
+    const extractionMeta = {
+      globalConfidence,
+      model,
+      lowConfidenceCount: markers.filter(m => isFlagged(m)).length,
+      unmatchedMarkers: markers.filter(m => m.needsReview).map(m => m.markerName.trim()),
+    }
+
     setIsSaving(true)
     try {
       const res = await fetch('/api/health/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ panelDate, labName, markers: parsed }),
+        body: JSON.stringify({ panelDate, labName, markers: parsed, extractionMeta, corrections }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Erreur lors de l\'enregistrement')
