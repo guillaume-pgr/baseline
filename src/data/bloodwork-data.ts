@@ -16,7 +16,8 @@ export type BloodMarker = {
   warn: boolean
   trendDir: MarkerTrendDir
   trendLabel: string
-  history: [number, number, number, number, number]
+  // One value per panel, oldest → newest (real data: variable length).
+  history: number[]
   // Optional per-marker explanation (real data: filled from the local reference).
   // Demo markers fall back to MARKER_EXPLANATIONS by id.
   explanation?: string

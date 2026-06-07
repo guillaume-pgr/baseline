@@ -68,12 +68,16 @@ function getExplanationKey(code: string, name: string): string {
 
 // ─── Adapt a single DB marker → BloodMarker ──────────────────────────────────
 
-function adaptMarker(m: {
-  id: string; marker_code: string; marker_name: string
-  value: number; unit: string
-  ref_min: number | null; ref_max: number | null
-  status: string | null; organ_system?: string | null
-}): BloodMarker {
+function adaptMarker(
+  m: {
+    id: string; marker_code: string; marker_name: string
+    value: number; unit: string
+    ref_min: number | null; ref_max: number | null
+    status: string | null; organ_system?: string | null
+  },
+  // One value per panel, oldest → newest (MODIF 4). Defaults to the single value.
+  history: number[] = [m.value],
+): BloodMarker {
   const rangeMin = m.ref_min ?? m.value * 0.6
   const rangeMax = m.ref_max ?? m.value * 1.4
   const mid = (rangeMin + rangeMax) / 2
@@ -86,6 +90,16 @@ function adaptMarker(m: {
   const explanation = MARKER_EXPLANATIONS[explanationKey]
     ?? matchMarker(m.marker_name)?.explanation
     ?? matchMarker(m.marker_code)?.explanation
+
+  // Trend from first → last measurement across panels.
+  const first = history[0]
+  const last = history[history.length - 1]
+  const trendDir: BloodMarker['trendDir'] = history.length < 2 || last === first
+    ? 'flat'
+    : last > first ? 'up' : 'down'
+  const trendLabel = history.length < 2
+    ? '→ 1 mesure'
+    : `${history.length} mesures`
 
   return {
     id: explanationKey || m.marker_code?.toLowerCase(),
@@ -101,9 +115,9 @@ function adaptMarker(m: {
       String(rangeMax.toFixed(1)).replace('.', ','),
     ],
     warn,
-    trendDir: 'flat',
-    trendLabel: '→ 1 mesure',
-    history: [m.value, m.value, m.value, m.value, m.value],
+    trendDir,
+    trendLabel,
+    history,
   }
 }
 
@@ -184,11 +198,37 @@ function emptyDomain(id: string, name: string, color: 'rust' | 'lichen' | 'aqua'
 // ─── Main adapter ─────────────────────────────────────────────────────────────
 
 export function adaptRealData(profile: any, panels: RealBloodPanelData[]) {
-  const latest = panels[0]
+  // All panels, oldest → newest, for the evolution charts (MODIF 4).
+  const sorted = [...panels].sort((a, b) => a.panel.panel_date.localeCompare(b.panel.panel_date))
+  const latest = sorted[sorted.length - 1]
   const raw    = latest?.markers ?? []
 
-  // Adapt markers
-  const adapted = raw.map(m => adaptMarker(m))
+  // Normalised identity to match a marker across panels.
+  const idOf = (code?: string | null, name?: string | null) =>
+    (code || name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '')
+
+  // value-by-marker lookup for each panel (oldest → newest)
+  const panelValues = sorted.map(p => {
+    const map = new Map<string, number>()
+    p.markers.forEach(mk => map.set(idOf(mk.marker_code, mk.marker_name), mk.value))
+    return map
+  })
+
+  // Build a marker's time series across panels; gaps are filled by carry-forward
+  // (and leading gaps by the first known value) so the line never breaks.
+  function historyFor(m: { marker_code: string; marker_name: string; value: number }): number[] {
+    const key = idOf(m.marker_code, m.marker_name)
+    const rawVals = panelValues.map(map => (map.has(key) ? map.get(key)! : null))
+    const firstKnown = rawVals.find(v => v !== null) ?? m.value
+    let last: number | null = null
+    return rawVals.map(v => {
+      if (v !== null) last = v
+      return last ?? firstKnown
+    })
+  }
+
+  // Adapt markers (latest panel = current values; history spans all panels)
+  const adapted = raw.map(m => adaptMarker(m, historyFor(m)))
   const categories = buildCategories(raw, adapted)
 
   // Scores
@@ -216,7 +256,10 @@ export function adaptRealData(profile: any, panels: RealBloodPanelData[]) {
     ? new Date(latest.panel.panel_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : ''
 
-  const bloodworkDates = ['', '', '', '', panelDate] as unknown as readonly ['Oct 24', 'Mar 25', 'Sep 25', 'Jan 26', 'Mar 26']
+  // One x-axis label per panel (oldest → newest), aligned with marker histories.
+  const bloodworkDates = sorted.map(p =>
+    new Date(p.panel.panel_date).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }),
+  )
 
   return {
     profile: {

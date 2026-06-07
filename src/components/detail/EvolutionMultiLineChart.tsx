@@ -16,10 +16,12 @@ type EvolutionMultiLineChartProps = {
 }
 
 // Normalize one series to [0.3H, 1.1H] range, independently of other series.
+// A flat or single-point series is centred so it renders cleanly.
 function normalizeSeries(values: number[], H: number): number[] {
   const min = Math.min(...values)
   const max = Math.max(...values)
-  const range = max - min || 1
+  const range = max - min
+  if (range === 0) return values.map(() => H * 0.5)
   return values.map(v => H - ((v - min) / range) * H * 0.8 + H * 0.1)
 }
 
@@ -35,8 +37,9 @@ export default function EvolutionMultiLineChart({
   title, series, dates, id, showValues = false,
 }: EvolutionMultiLineChartProps) {
   const n = dates.length
-  const step = (W - 80) / (n - 1)
-  const xs = dates.map((_, i) => 40 + i * step)
+  // Single point → centre it; otherwise spread evenly across the width.
+  const step = n > 1 ? (W - 80) / (n - 1) : 0
+  const xs = n > 1 ? dates.map((_, i) => 40 + i * step) : [W / 2]
   const gradId = `evol-multi-${id}`
 
   // Each series normalized on its own scale so trends are always visible
