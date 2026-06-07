@@ -1,7 +1,15 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { IconUpload, IconX, IconTrash, IconFileCheck } from '@tabler/icons-react'
+
+// Reassuring step labels cycled during the Vision analysis (MODIF 5).
+const ANALYSIS_STEPS = [
+  'Lecture du document…',
+  'Extraction des marqueurs…',
+  'Vérification des unités…',
+  'Presque prêt…',
+]
 
 interface ImportModalProps {
   open: boolean
@@ -49,7 +57,16 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
   const [labName, setLabName] = useState('')
   const [markers, setMarkers] = useState<EditableMarker[]>([])
 
+  const [stepIdx, setStepIdx] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Cycle the reassuring step labels while the document is being analysed.
+  // (stepIdx is reset to 0 in handleExtract before analysis starts.)
+  useEffect(() => {
+    if (!isExtracting) return
+    const id = setInterval(() => setStepIdx(i => (i + 1) % ANALYSIS_STEPS.length), 1400)
+    return () => clearInterval(id)
+  }, [isExtracting])
 
   const reset = () => {
     setStep('select')
@@ -85,6 +102,7 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
 
   const handleExtract = async () => {
     if (!file) return
+    setStepIdx(0)
     setIsExtracting(true)
     setError('')
     try {
@@ -205,8 +223,23 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
             : 'Glisse un PDF ou une photo de ta prise de sang. Lyvio en extrait les marqueurs automatiquement.'}
         </p>
 
+        {/* ─── Analyzing: animated loading (MODIF 5) ─────────────────── */}
+        {!isReview && isExtracting && (
+          <div style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-line)', borderRadius: 12, padding: '28px 24px', textAlign: 'center' }}>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5C7A4A', margin: '0 0 16px' }}>
+              {ANALYSIS_STEPS[stepIdx]}
+            </p>
+            <div style={{ position: 'relative', height: 6, borderRadius: 999, backgroundColor: 'var(--color-lichen-soft)', overflow: 'hidden' }}>
+              <span style={{ position: 'absolute', top: 0, width: '45%', height: '100%', borderRadius: 999, backgroundColor: 'var(--color-lichen)', animation: 'lyvio-loading-slide 1.1s ease-in-out infinite' }} />
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--color-ink-3)', lineHeight: 1.5, margin: '16px 0 0' }}>
+              Analyse de ton bilan en cours. Ça prend généralement quelques secondes.
+            </p>
+          </div>
+        )}
+
         {/* ─── Step: select ─────────────────────────────────────────── */}
-        {!isReview && (
+        {!isReview && !isExtracting && (
           <>
             <div
               onClick={() => fileInputRef.current?.click()}
