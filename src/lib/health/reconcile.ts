@@ -49,6 +49,7 @@ export interface ReconciledMarker {
   markerName: string // canonique si reconnu, sinon nom brut
   rawName: string
   value: number
+  rawValue: number // valeur normalisée AVANT conversion (pour la vérif texte, sous-étape D)
   unit: string // unité conventionnelle
   refMin: number | null
   refMax: number | null
@@ -119,6 +120,7 @@ export function reconcileExtraction(raw: RawExtraction): ReconciledPanel {
         markerName: m.raw_name.trim(),
         rawName: m.raw_name.trim(),
         value,
+        rawValue: value,
         unit: normalizeUnit(m.raw_unit),
         refMin: m.ref_low,
         refMax: m.ref_high,
@@ -160,6 +162,7 @@ export function reconcileExtraction(raw: RawExtraction): ReconciledPanel {
       markerName: ref.canonical,
       rawName: m.raw_name.trim(),
       value: conv.value as number,
+      rawValue: value,
       unit: conv.unit,
       refMin,
       refMax,

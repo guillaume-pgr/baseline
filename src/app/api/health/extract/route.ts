@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAnthropicClient } from '@/lib/anthropic'
 import { checkBloodPanelGate } from '@/lib/health/gating'
 import { reconcileExtraction, type RawExtraction } from '@/lib/health/reconcile'
+import { verifyMarkers } from '@/lib/health/verify'
 
 // Modèle d'extraction = le plus précis disponible (le chat reste sur Sonnet).
 const MODEL_EXTRACTION = 'claude-opus-4-8'
@@ -215,14 +216,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[api/health/extract] réconcilié', panel.markers.length, 'marqueurs',
-      `(${panel.markers.filter(m => m.needsReview).length} à compléter)`)
+    // ─── Auto-vérification (sous-étape D, zéro appel API) ────────────────────
+    const { markers, globalConfidence } = verifyMarkers(panel.markers, pdfText)
+
+    console.log('[api/health/extract] réconcilié', markers.length, 'marqueurs',
+      `(${markers.filter(m => m.needsReview).length} à compléter,`,
+      `${markers.filter(m => m.verifyWarning).length} à vérifier, confiance ${globalConfidence})`)
 
     return NextResponse.json({
       panelDate: panel.panelDate,
       labName: panel.labName,
       patientSex: panel.patientSex,
-      markers: panel.markers,
+      globalConfidence,
+      markers,
     })
   } catch (error) {
     console.error('[api/health/extract] error:', error)
