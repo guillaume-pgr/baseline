@@ -9,6 +9,7 @@
  */
 
 import { matchMarker, boundsForSex } from './blood-markers-reference'
+import { getMarkerStatus, isOutOfRange as statusOutOfRange } from './marker-status'
 import type { ReconciledMarker } from './reconcile'
 
 // En dessous de ce seuil, la LECTURE est jugée peu sûre (≠ valeur hors norme).
@@ -27,13 +28,9 @@ export interface VerifiedMarker extends ReconciledMarker {
 }
 
 // Le résultat sort-il de l'intervalle de référence ? (statut d'affichage)
+// Dérivé de la source unique getMarkerStatus pour rester cohérent partout.
 function isOutOfRange(m: ReconciledMarker): boolean {
-  if (m.refOperator === 'lt') return m.refMax !== null && m.value > m.refMax
-  if (m.refOperator === 'gt') return m.refMin !== null && m.value < m.refMin
-  if (m.refOperator === 'range') {
-    return (m.refMin !== null && m.value < m.refMin) || (m.refMax !== null && m.value > m.refMax)
-  }
-  return false
+  return statusOutOfRange(getMarkerStatus(m.value, m.refMin, m.refMax, m.refOperator))
 }
 
 export interface VerifiedPanel {

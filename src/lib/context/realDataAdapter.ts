@@ -6,6 +6,12 @@
 import type { RealBloodPanelData } from './useRealBloodPanels'
 import { MARKER_EXPLANATIONS, type BloodMarker, type BloodCategory } from '@/data/bloodwork-data'
 import { matchMarker } from '@/lib/health/blood-markers-reference'
+import { getMarkerStatus, isOutOfRange, type MarkerStatus } from '@/lib/health/marker-status'
+
+// Statut d'un marqueur DB — source unique (opérateur déduit des bornes stockées).
+function statusOf(m: { value: number; ref_min: number | null; ref_max: number | null }): MarkerStatus {
+  return getMarkerStatus(m.value, m.ref_min, m.ref_max)
+}
 
 // ─── Marker name normalisation → explanation key ────────────────────────────
 
@@ -82,7 +88,7 @@ function adaptMarker(
   const rangeMax = m.ref_max ?? m.value * 1.4
   const mid = (rangeMin + rangeMax) / 2
 
-  const warn = m.status === 'danger' || m.status === 'warning'
+  const warn = isOutOfRange(getMarkerStatus(m.value, m.ref_min, m.ref_max))
   const explanationKey = getExplanationKey(m.marker_code, m.marker_name)
 
   // Explanation: prefer the existing curated map, else fall back to the local
@@ -168,7 +174,8 @@ function buildCategories(rawMarkers: RealBloodPanelData['markers'], adapted: Blo
   })
 
   return Array.from(groups.entries()).map(([key, { raw, adapted: aMarkers }]) => {
-    const warnCount = raw.filter(m => m.status === 'warning' || m.status === 'danger').length
+    // Badge = nb de marqueurs hors norme (out_low/out_high) ; les 'unrated' ne comptent pas.
+    const warnCount = raw.filter(m => isOutOfRange(statusOf(m))).length
     const c = GROUP_COLORS[key] ?? GROUP_COLORS.default
     const groupName = CATEGORY_LABELS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1))
     return {
@@ -190,17 +197,22 @@ function buildCategories(rawMarkers: RealBloodPanelData['markers'], adapted: Blo
 
 function buildPills(raw: RealBloodPanelData['markers']): { label: string; ok: boolean }[] {
   const pills: { label: string; ok: boolean }[] = []
-  const groups = new Map<string, { ok: number; total: number }>()
+  // Compte uniquement les marqueurs NOTÉS (hors 'unrated'). out = rated - optimal,
+  // identique au badge de section pour rester 100% cohérent.
+  const groups = new Map<string, { ok: number; rated: number }>()
   raw.forEach(m => {
+    const st = statusOf(m)
+    if (st === 'unrated') return
     const key = m.organ_system?.toLowerCase() ?? 'autre'
-    if (!groups.has(key)) groups.set(key, { ok: 0, total: 0 })
+    if (!groups.has(key)) groups.set(key, { ok: 0, rated: 0 })
     const g = groups.get(key)!
-    g.total++
-    if (m.status === 'optimal') g.ok++
+    g.rated++
+    if (st === 'optimal') g.ok++
   })
   groups.forEach((v, key) => {
-    const name = key.charAt(0).toUpperCase() + key.slice(1)
-    pills.push({ label: `${name} · ${v.ok === v.total ? 'optimal' : `${v.total - v.ok} à surveiller`}`, ok: v.ok === v.total })
+    const name = CATEGORY_LABELS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1))
+    const out = v.rated - v.ok
+    pills.push({ label: `${name} · ${out === 0 ? 'optimal' : `${out} à surveiller`}`, ok: out === 0 })
   })
   return pills.slice(0, 4)
 }
@@ -252,9 +264,10 @@ export function adaptRealData(profile: any, panels: RealBloodPanelData[]) {
   const adapted = raw.map(m => adaptMarker(m, historyFor(m)))
   const categories = buildCategories(raw, adapted)
 
-  // Scores
-  const optimal = raw.filter(m => m.status === 'optimal').length
-  const total   = raw.length
+  // Scores — Y = marqueurs NOTÉS (avec référence), X = 'optimal'. Les 'unrated'
+  // (ex. VLDL) sont exclus du décompte (ni numérateur ni dénominateur).
+  const optimal = raw.filter(m => statusOf(m) === 'optimal').length
+  const total   = raw.filter(m => statusOf(m) !== 'unrated').length
   const bloodScore = total > 0 ? Math.round((optimal / total) * 100) : 0
 
   // Chrono age from birth_date

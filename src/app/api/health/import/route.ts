@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkBloodPanelGate } from '@/lib/health/gating'
-import {
-  validateBloodPanel,
-  getMarkerStatus,
-  type BloodPanelImport,
-} from '@/lib/health/blood-panel-parser'
+import { validateBloodPanel, type BloodPanelImport } from '@/lib/health/blood-panel-parser'
+import { getMarkerStatus, toDbStatus } from '@/lib/health/marker-status'
 
 // Learning-loop payload (sous-étape F) — optional, best-effort logging.
 interface ExtractionMeta {
@@ -84,7 +81,7 @@ export async function POST(request: NextRequest) {
       ref_min: marker.refMin ?? null,
       ref_max: marker.refMax ?? null,
       organ_system: marker.organSystem ?? null,
-      status: getMarkerStatus(marker.value, marker.refMin, marker.refMax),
+      status: toDbStatus(getMarkerStatus(marker.value, marker.refMin, marker.refMax)),
     }))
 
     const { error: markersError } = await (supabase

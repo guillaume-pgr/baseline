@@ -60,15 +60,4 @@ export function validateBloodPanel(panel: BloodPanelImport): string[] {
   return errors
 }
 
-// Detect marker status based on reference values
-export function getMarkerStatus(
-  value: number,
-  refMin?: number | null,
-  refMax?: number | null,
-): 'optimal' | 'warning' | 'danger' | 'low_normal' | 'high_normal' | null {
-  if (refMin === undefined || refMin === null || refMax === undefined || refMax === null) return null
-
-  if (value < refMin) return 'low_normal'
-  if (value > refMax) return 'high_normal'
-  return 'optimal'
-}
+// Statut des marqueurs : voir src/lib/health/marker-status.ts (source unique).
