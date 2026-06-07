@@ -36,6 +36,8 @@ interface ExtractedMarker {
   confidence?: number
   verifyWarning?: boolean
   verifyReasons?: string[]
+  extractionFlag?: boolean
+  outOfRange?: boolean
 }
 
 // Editable representation — numeric fields held as strings while the user reviews.
@@ -52,14 +54,18 @@ interface EditableMarker {
   confidence: number
   verifyWarning: boolean
   verifyReasons: string[]
+  extractionFlag: boolean
+  outOfRange: boolean
 }
 
 // Snapshot initial d'un marqueur (à l'extraction) pour repérer les corrections.
 interface MarkerSnapshot { markerName: string; value: string; unit: string }
 
-// Un marqueur à vérifier : non reconnu, recoupement échoué, ou confiance basse.
-function isFlagged(m: EditableMarker): boolean {
-  return m.needsReview || m.verifyWarning || m.confidence < LOW_CONFIDENCE
+// "À vérifier" = fiabilité de l'EXTRACTION uniquement (nom non reconnu,
+// valeur introuvable, bornes incohérentes, ordre de grandeur absurde, confiance
+// basse). Une valeur hors norme (outOfRange) n'est JAMAIS "à vérifier".
+function isExtractionFlag(m: EditableMarker): boolean {
+  return m.extractionFlag
 }
 
 function flagTooltip(m: EditableMarker): string {
@@ -164,6 +170,8 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
         confidence: m.confidence ?? 1,
         verifyWarning: m.verifyWarning ?? false,
         verifyReasons: m.verifyReasons ?? [],
+        extractionFlag: m.extractionFlag ?? ((m.needsReview ?? false) || (m.verifyWarning ?? false) || (m.confidence ?? 1) < LOW_CONFIDENCE),
+        outOfRange: m.outOfRange ?? false,
       }))
       // Snapshot initial pour repérer les corrections de nom/unité.
       originalRef.current = Object.fromEntries(
@@ -227,7 +235,7 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
     const extractionMeta = {
       globalConfidence,
       model,
-      lowConfidenceCount: markers.filter(m => isFlagged(m)).length,
+      lowConfidenceCount: markers.filter(m => isExtractionFlag(m)).length,
       unmatchedMarkers: markers.filter(m => m.needsReview).map(m => m.markerName.trim()),
     }
 
@@ -379,7 +387,7 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
 
             {/* Bandeau de revue ciblée : seuls les marqueurs à vérifier sont mis en avant */}
             {(() => {
-              const flaggedCount = markers.filter(isFlagged).length
+              const flaggedCount = markers.filter(isExtractionFlag).length
               if (flaggedCount > 0) {
                 return (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', marginBottom: 12, backgroundColor: 'var(--color-amber-soft)', borderRadius: 8, fontSize: 12, color: 'var(--color-ink-2)' }}>
@@ -405,7 +413,7 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
                 <span>Marqueur</span><span>Valeur</span><span>Unité</span><span>Réf. min</span><span>Réf. max</span><span />
               </div>
               {markers.map((m, idx) => {
-                const flagged = isFlagged(m)
+                const flagged = isExtractionFlag(m)
                 return (
                   <div key={idx} style={{
                     display: 'grid', gridTemplateColumns: '2.3fr 0.8fr 0.7fr 0.6fr 0.6fr 28px',

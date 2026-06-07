@@ -11,9 +11,29 @@
 import { matchMarker, boundsForSex } from './blood-markers-reference'
 import type { ReconciledMarker } from './reconcile'
 
+// En dessous de ce seuil, la LECTURE est jugée peu sûre (≠ valeur hors norme).
+const LOW_CONFIDENCE = 0.6
+
 export interface VerifiedMarker extends ReconciledMarker {
+  // Fiabilité de l'EXTRACTION uniquement (jamais le fait d'être hors norme).
   verifyWarning: boolean
   verifyReasons: string[]
+  // extractionFlag = "à vérifier" : nom non reconnu, valeur introuvable,
+  // bornes incohérentes, ordre de grandeur absurde, ou confiance basse.
+  extractionFlag: boolean
+  // outOfRange = RÉSULTAT hors des bornes de référence. C'est un statut
+  // d'affichage VALIDE — il ne déclenche JAMAIS "à vérifier".
+  outOfRange: boolean
+}
+
+// Le résultat sort-il de l'intervalle de référence ? (statut d'affichage)
+function isOutOfRange(m: ReconciledMarker): boolean {
+  if (m.refOperator === 'lt') return m.refMax !== null && m.value > m.refMax
+  if (m.refOperator === 'gt') return m.refMin !== null && m.value < m.refMin
+  if (m.refOperator === 'range') {
+    return (m.refMin !== null && m.value < m.refMin) || (m.refMax !== null && m.value > m.refMax)
+  }
+  return false
 }
 
 export interface VerifiedPanel {
@@ -72,7 +92,11 @@ export function verifyMarkers(markers: ReconciledMarker[], pdfText: string): Ver
       }
     }
 
-    return { ...m, verifyWarning: reasons.length > 0, verifyReasons: reasons }
+    const verifyWarning = reasons.length > 0
+    // "À vérifier" = fiabilité d'extraction. Le statut hors-norme (outOfRange)
+    // en est volontairement EXCLU.
+    const extractionFlag = m.needsReview || verifyWarning || (m.confidence ?? 1) < LOW_CONFIDENCE
+    return { ...m, verifyWarning, verifyReasons: reasons, extractionFlag, outOfRange: isOutOfRange(m) }
   })
 
   // 4. Score de confiance global : moyenne des confidences, pénalisée par les
