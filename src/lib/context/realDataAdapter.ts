@@ -125,15 +125,36 @@ function adaptMarker(
 
 const GROUP_COLORS: Record<string, { iconColor: string; iconBg: string; chartColor: string }> = {
   hematologie: { iconColor: 'var(--color-rust)',     iconBg: 'var(--color-rust-soft)',     chartColor: '#B5705A' },
+  hemostase:   { iconColor: 'var(--color-rust)',     iconBg: 'var(--color-rust-soft)',     chartColor: '#B5705A' },
   lipides:     { iconColor: 'var(--color-rust)',     iconBg: 'var(--color-rust-soft)',     chartColor: '#B5705A' },
   glucides:    { iconColor: 'var(--color-lichen)',   iconBg: 'var(--color-lichen-soft)',   chartColor: '#9CB380' },
   foie:        { iconColor: 'var(--color-amber)',    iconBg: 'var(--color-amber-soft)',    chartColor: '#D4A574' },
+  pancreas:    { iconColor: 'var(--color-amber)',    iconBg: 'var(--color-amber-soft)',    chartColor: '#D4A574' },
   reins:       { iconColor: 'var(--color-aqua)',     iconBg: 'var(--color-aqua-soft)',     chartColor: '#7BA8B5' },
   thyroide:    { iconColor: 'var(--color-aqua)',     iconBg: 'var(--color-aqua-soft)',     chartColor: '#7BA8B5' },
   vitamines:   { iconColor: 'var(--color-amber)',    iconBg: 'var(--color-amber-soft)',    chartColor: '#D4A574' },
   mineraux:    { iconColor: 'var(--color-lichen)',   iconBg: 'var(--color-lichen-soft)',   chartColor: '#9CB380' },
   inflammation:{ iconColor: 'var(--color-lavender)', iconBg: 'var(--color-lavender-soft)', chartColor: '#9890B5' },
+  hormones:    { iconColor: 'var(--color-lavender)', iconBg: 'var(--color-lavender-soft)', chartColor: '#9890B5' },
+  cardiaque:   { iconColor: 'var(--color-rust)',     iconBg: 'var(--color-rust-soft)',     chartColor: '#B5705A' },
   default:     { iconColor: 'var(--color-lavender)', iconBg: 'var(--color-lavender-soft)', chartColor: '#9890B5' },
+}
+
+// Libellés lisibles (avec accents) pour les catégories du référentiel.
+const CATEGORY_LABELS: Record<string, string> = {
+  hematologie: 'Hématologie',
+  hemostase: 'Hémostase',
+  lipides: 'Lipides',
+  glucides: 'Glucides',
+  foie: 'Foie',
+  pancreas: 'Pancréas',
+  reins: 'Reins',
+  thyroide: 'Thyroïde',
+  vitamines: 'Vitamines',
+  mineraux: 'Minéraux',
+  inflammation: 'Inflammation',
+  hormones: 'Hormones',
+  cardiaque: 'Cardiaque',
 }
 
 function buildCategories(rawMarkers: RealBloodPanelData['markers'], adapted: BloodMarker[]): BloodCategory[] {
@@ -149,7 +170,7 @@ function buildCategories(rawMarkers: RealBloodPanelData['markers'], adapted: Blo
   return Array.from(groups.entries()).map(([key, { raw, adapted: aMarkers }]) => {
     const warnCount = raw.filter(m => m.status === 'warning' || m.status === 'danger').length
     const c = GROUP_COLORS[key] ?? GROUP_COLORS.default
-    const groupName = key.charAt(0).toUpperCase() + key.slice(1)
+    const groupName = CATEGORY_LABELS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1))
     return {
       id: key.replace(/[^a-z0-9]/g, '_'),
       name: groupName,
