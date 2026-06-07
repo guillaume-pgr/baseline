@@ -115,17 +115,17 @@ export const BLOOD_MARKERS_REFERENCE: MarkerReference[] = [
     explanation: "Jeunes globules rouges tout juste produits par la moelle. Un taux dans la norme reflète un renouvellement sanguin sain.",
   },
   {
-    canonical: 'Polynucléaires neutrophiles', aliases: ['PNN', 'Neutrophiles', 'Polynucleaires neutrophiles', 'Neutrophiles (absolus)'],
+    canonical: 'Polynucléaires neutrophiles', aliases: ['PNN', 'Neutrophiles', 'Polynucleaires neutrophiles', 'Neutrophiles (absolus)', 'Poly. Neutrophiles'],
     unit: '/mm3', refLow: 1500, refHigh: 7000, refOperator: 'range', category: 'hematologie',
     explanation: "Globules blancs les plus nombreux, mobilisés face aux bactéries. Un taux équilibré reflète une immunité réactive et au repos.",
   },
   {
-    canonical: 'Polynucléaires éosinophiles', aliases: ['Éosinophiles', 'Eosinophiles', 'PNE'],
+    canonical: 'Polynucléaires éosinophiles', aliases: ['Éosinophiles', 'Eosinophiles', 'PNE', 'Poly. Eosinophiles'],
     unit: '/mm3', refLow: 0, refHigh: 500, refOperator: 'range', category: 'hematologie',
     explanation: "Globules blancs liés aux allergies et à la réponse aux parasites. Un taux bas et stable traduit un terrain peu réactif.",
   },
   {
-    canonical: 'Polynucléaires basophiles', aliases: ['Basophiles', 'PNB'],
+    canonical: 'Polynucléaires basophiles', aliases: ['Basophiles', 'PNB', 'Poly. Basophiles'],
     unit: '/mm3', refLow: null, refHigh: 100, refOperator: 'lt', category: 'hematologie',
     explanation: "Globules blancs les plus rares, liés aux réactions inflammatoires. Un taux bas dans la norme est parfaitement habituel.",
   },
@@ -201,7 +201,7 @@ export const BLOOD_MARKERS_REFERENCE: MarkerReference[] = [
     explanation: "Déchet musculaire filtré par les reins. Stable dans la norme, elle confirme une bonne fonction rénale.",
   },
   {
-    canonical: 'DFG (CKD-EPI)', aliases: ['DFG', 'Débit de filtration glomérulaire', 'Estimation du DFG', 'eGFR', 'DFG estimé', 'Debit de filtration glomerulaire'],
+    canonical: 'DFG (CKD-EPI)', aliases: ['DFG', 'Débit de filtration glomérulaire', 'Estimation du DFG', 'eGFR', 'DFG estimé', 'Debit de filtration glomerulaire', 'Estimation du DFG selon CKD-EPI', 'CKD-EPI'],
     unit: 'mL/min', refLow: 90, refHigh: null, refOperator: 'gt', category: 'reins',
     explanation: "Estime la capacité de filtration des reins. Un DFG élevé est le signe d'une excellente fonction rénale.",
   },
@@ -249,7 +249,7 @@ export const BLOOD_MARKERS_REFERENCE: MarkerReference[] = [
     explanation: "Le « bon » cholestérol — évacue les graisses des artères. Un HDL élevé est protecteur, soutenu par l'exercice d'endurance.",
   },
   {
-    canonical: 'LDL cholestérol', aliases: ['LDL', 'Cholestérol LDL', 'LDL-c', 'LDL calculé', 'LDL cholesterol', 'LDL calcule'],
+    canonical: 'LDL cholestérol', aliases: ['LDL', 'Cholestérol LDL', 'LDL-c', 'LDL calculé', 'LDL cholesterol', 'LDL calcule', 'LDL CHOLESTEROL calculé'],
     unit: 'g/L', conversions: { 'mmol/l': 0.387 }, refLow: null, refHigh: 1.60, refOperator: 'lt', category: 'lipides',
     explanation: "Le « mauvais » cholestérol — peut s'accumuler dans les artères. Un LDL bas limite la formation de plaques sur le long terme.",
   },
@@ -273,7 +273,7 @@ export const BLOOD_MARKERS_REFERENCE: MarkerReference[] = [
     explanation: "Compare le « mauvais » et le « bon » cholestérol. Un rapport bas traduit un profil lipidique favorable au cœur.",
   },
   {
-    canonical: 'Rapport Cholestérol total/HDL', aliases: ['CT/HDL', 'Cholestérol total/HDL', 'Rapport CT/HDL', 'Cholesterol total/HDL'],
+    canonical: 'Rapport Cholestérol total/HDL', aliases: ['CT/HDL', 'Cholestérol total/HDL', 'Rapport CT/HDL', 'Cholesterol total/HDL', 'Rapport CHOLESTEROL TOT./HDL-C.', 'Rapport Cholestérol/HDL', 'Cholestérol/HDL'],
     unit: 'ratio', refLow: null, refHigh: 5.0, refOperator: 'lt', category: 'lipides',
     explanation: "Indicateur clé de l'équilibre lipidique global. Un ratio bas signale un bon partage entre cholestérol protecteur et à surveiller.",
   },
@@ -742,17 +742,28 @@ const REFERENCE_INDEX: Map<string, MarkerReference> = (() => {
   return map
 })()
 
+// Développe les abréviations courantes (normalizeName a déjà retiré les points
+// d'abréviation : "Poly." → "poly"). Tolérant aux variantes des bilans FR.
+function expandAbbrev(s: string): string {
+  return s
+    .replace(/\bpoly\b/g, 'polynucleaires')
+    .replace(/\bpolynucleaire\b/g, 'polynucleaires')
+}
+
 /**
- * Retrouve une entrée par nom canonique OU alias, normalisé. Tolère les
- * qualificatifs entre parenthèses (ex. "ASAT (TGO)" → "ASAT").
+ * Retrouve une entrée par nom canonique OU alias, normalisé. Tolère :
+ * les accents/casse/espaces/ponctuation (normalizeName), les qualificatifs
+ * entre parenthèses (ex. "ASAT (TGO)" → "ASAT"), et les abréviations
+ * (ex. "Poly. Neutrophiles" → "polynucleaires neutrophiles").
  */
 export function matchMarker(rawName: string | null | undefined): MarkerReference | undefined {
   if (!rawName) return undefined
-  const direct = REFERENCE_INDEX.get(normalizeName(rawName))
-  if (direct) return direct
+  const base = normalizeName(rawName)
   const noParen = normalizeName(String(rawName).replace(/\([^)]*\)/g, ' '))
-  if (noParen) {
-    const e = REFERENCE_INDEX.get(noParen)
+  const candidates = [base, expandAbbrev(base), noParen, expandAbbrev(noParen)]
+  for (const c of candidates) {
+    if (!c) continue
+    const e = REFERENCE_INDEX.get(c)
     if (e) return e
   }
   return undefined
