@@ -255,7 +255,7 @@ export const BLOOD_MARKERS_REFERENCE: MarkerReference[] = [
   },
   {
     canonical: 'VLDL', aliases: ['VLDL cholestérol', 'VLDL cholesterol'],
-    unit: 'g/L', conversions: { 'mmol/l': 0.387 }, refLow: 0.10, refHigh: 0.40, refOperator: 'range', category: 'lipides',
+    unit: 'g/L', conversions: { 'mmol/l': 0.387 }, refLow: null, refHigh: null, refOperator: 'none', category: 'lipides',
     explanation: "Lipoprotéine qui transporte surtout les triglycérides. Suivie avec les autres lipides, elle complète la lecture de l'équilibre.",
   },
   {
