@@ -98,19 +98,21 @@ function MarkerRowExhaustive({ m }: { m: BloodMarker }) {
         </div>
       </div>
 
-      {/* Right 1/3: explanation */}
-      {explanation && (
-        <p style={{
-          fontSize: 11,
-          color: 'var(--color-ink-3)',
-          lineHeight: 1.55,
-          margin: 0,
-          paddingLeft: 16,
-          borderLeft: '1px solid var(--color-line)',
+      {/* Right 1/3: statut + explication */}
+      <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--color-line)' }}>
+        <span style={{
+          display: 'inline-block', fontFamily: 'var(--font-mono)', fontSize: 9,
+          letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6,
+          color: m.warn ? 'var(--color-rust)' : '#5C7A4A',
         }}>
-          {explanation}
-        </p>
-      )}
+          {m.warn ? 'À surveiller' : 'Optimal'}
+        </span>
+        {explanation && (
+          <p style={{ fontSize: 11, color: 'var(--color-ink-3)', lineHeight: 1.55, margin: 0 }}>
+            {explanation}
+          </p>
+        )}
+      </div>
     </div>
   )
 }
