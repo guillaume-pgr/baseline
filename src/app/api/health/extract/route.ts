@@ -3,7 +3,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { getAnthropicClient } from '@/lib/anthropic'
 import { checkBloodPanelGate } from '@/lib/health/gating'
-import { completeMarkerFromReference } from '@/lib/health/blood-markers-reference'
+import { reconcileExtraction, type RawExtraction } from '@/lib/health/reconcile'
 
 // Modèle d'extraction = le plus précis disponible (le chat reste sur Sonnet).
 const MODEL_EXTRACTION = 'claude-opus-4-8'
@@ -12,33 +12,6 @@ const MODEL_EXTRACTION = 'claude-opus-4-8'
 const MAX_FILE_BYTES = 15 * 1024 * 1024 // 15 MB
 const MAX_PDF_PAGES = 25
 const ACCEPTED = ['application/pdf', 'image/png', 'image/jpeg'] as const
-
-// ─── Schéma de sortie strict (extraction brute) ──────────────────────────────
-
-interface RawMarker {
-  raw_name: string
-  value: number | null
-  raw_unit: string | null
-  ref_low: number | null
-  ref_high: number | null
-  ref_operator: 'range' | 'lt' | 'gt' | 'none'
-  secondary_value: number | null
-  secondary_unit: string | null
-  section: string | null
-  confidence: number
-  is_patient_value: boolean
-}
-
-interface RawExtraction {
-  metadata: {
-    lab_name: string | null
-    collection_date: string | null
-    report_date: string | null
-    patient_sex: 'M' | 'F' | null
-    patient_age: number | null
-  }
-  markers: RawMarker[]
-}
 
 const EXTRACT_SYSTEM = `Tu es un moteur d'extraction de comptes rendus de laboratoire de biologie médicale (le plus souvent en français, parfois dans une autre langue). Ta sortie alimente un pipeline déterministe : sois exhaustif, précis et littéral.
 
@@ -233,39 +206,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const patientMarkers = data.markers.filter(m => m.is_patient_value !== false && m.raw_name)
-    if (patientMarkers.length === 0) {
+    // ─── Réconciliation déterministe (sous-étape C, zéro appel API) ──────────
+    const panel = reconcileExtraction(data)
+    if (panel.markers.length === 0) {
       return NextResponse.json(
         { error: 'Aucun marqueur détecté. Vérifie que le document est lisible.' },
         { status: 422 },
       )
     }
 
-    const meta = data.metadata ?? { lab_name: null, collection_date: null, report_date: null, patient_sex: null, patient_age: null }
-    const sex = meta.patient_sex === 'M' || meta.patient_sex === 'F' ? meta.patient_sex : null
-
-    // ─── Pont temporaire vers le contrat UI existant ─────────────────────────
-    // La réconciliation déterministe complète (conversion d'unités, dédoublonnage,
-    // exclusions, vérifications) arrive en sous-étape C. Ici on mappe simplement
-    // vers la forme attendue par l'écran de validation, en complétant depuis le
-    // référentiel (sans appel API).
-    const markers = patientMarkers
-      .filter(m => m.value !== null)
-      .map(m => completeMarkerFromReference({
-        markerCode: '',
-        markerName: m.raw_name,
-        value: m.value as number,
-        unit: m.raw_unit ?? '',
-        refMin: m.ref_low,
-        refMax: m.ref_high,
-      }, sex))
-
-    console.log('[api/health/extract] extrait', markers.length, 'marqueurs patient')
+    console.log('[api/health/extract] réconcilié', panel.markers.length, 'marqueurs',
+      `(${panel.markers.filter(m => m.needsReview).length} à compléter)`)
 
     return NextResponse.json({
-      panelDate: meta.collection_date || new Date().toISOString().split('T')[0],
-      labName: meta.lab_name || 'Laboratoire',
-      markers,
+      panelDate: panel.panelDate,
+      labName: panel.labName,
+      patientSex: panel.patientSex,
+      markers: panel.markers,
     })
   } catch (error) {
     console.error('[api/health/extract] error:', error)
