@@ -7,8 +7,10 @@ import HeroStatement from '@/components/home/HeroStatement'
 import DomainsGrid from '@/components/home/DomainsGrid'
 import FocusGrid from '@/components/home/FocusGrid'
 import ActivityGrid from '@/components/home/ActivityGrid'
+import MobileDashboard from '@/components/mobile/MobileDashboard'
 
-export default function DashboardPage() {
+// ─── Desktop dashboard (≥md) — unchanged ─────────────────────────────────────
+function DesktopDashboard() {
   const data = usePersonaData()
   const { switchDemo } = usePersonaContext()
 
@@ -42,5 +44,18 @@ export default function DashboardPage() {
       <FocusGrid focus={data.focus as any} />
       <ActivityGrid activity={data.activity as any} />
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <>
+      <div className="md:hidden">
+        <MobileDashboard />
+      </div>
+      <div className="hidden md:block">
+        <DesktopDashboard />
+      </div>
+    </>
   )
 }
