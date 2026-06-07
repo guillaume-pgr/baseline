@@ -80,9 +80,8 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="flex flex-col h-screen shrink-0"
+      className="flex flex-col h-auto md:h-screen shrink-0 w-full md:w-60"
       style={{
-        width: 240,
         backgroundColor: 'var(--color-surface)',
         borderRight: '1px solid var(--color-line)',
       }}

@@ -109,16 +109,6 @@
   animation: ring-spin 40s linear infinite;
 }
 
-/* Mobile gate: show blocking screen, hide app below 900px */
-@media (max-width: 899px) {
-  .mobile-gate {
-    display: flex !important;
-  }
-  .desktop-app {
-    display: none !important;
-  }
-}
-
 @layer base {
   html {
     font-size: clamp(13px, 0.72vw + 8px, 16px);

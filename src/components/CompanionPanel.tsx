@@ -154,9 +154,8 @@ export default function CompanionPanel() {
 
   return (
     <aside
-      className="flex flex-col h-screen shrink-0"
+      className="flex flex-col h-auto md:h-screen shrink-0 w-full md:w-[380px]"
       style={{
-        width: 380,
         backgroundColor: 'var(--color-surface)',
         borderLeft: '1px solid var(--color-line)',
       }}
