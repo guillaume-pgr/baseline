@@ -6,7 +6,44 @@
 import type { RealBloodPanelData } from './useRealBloodPanels'
 import { MARKER_EXPLANATIONS, type BloodMarker, type BloodCategory } from '@/data/bloodwork-data'
 import { matchMarker } from '@/lib/health/blood-markers-reference'
-import { getMarkerStatus, isOutOfRange, type MarkerStatus } from '@/lib/health/marker-status'
+import { getMarkerStatus, isOutOfRange, inferOperator, type MarkerStatus } from '@/lib/health/marker-status'
+import type { RefOperator } from '@/lib/health/blood-markers-reference'
+
+// Géométrie de jauge selon l'opérateur — échelle visuelle + zone optimale + dot.
+// Corrige l'écrasement des seuils unilatéraux (gt/lt) sans borne opposée.
+function computeGauge(value: number, low: number | null, high: number | null, op: RefOperator): NonNullable<BloodMarker['gauge']> {
+  let scaleMin: number, scaleMax: number, optLow: number, optHigh: number, hasZone = true
+  if (op === 'range' && low !== null && high !== null) {
+    const amp = (high - low) || Math.abs(high || low || 1) * 0.3 || 1
+    scaleMin = low - amp * 0.15
+    scaleMax = high + amp * 0.15
+    optLow = low; optHigh = high
+  } else if (op === 'gt' && low !== null) {
+    scaleMin = low * 0.5
+    scaleMax = low * 2 || 1
+    optLow = low; optHigh = scaleMax // optimal = tout ce qui est >= seuil (droite)
+  } else if (op === 'lt' && high !== null) {
+    scaleMin = 0
+    scaleMax = high * 1.5 || 1
+    optLow = 0; optHigh = high // optimal = tout ce qui est <= seuil (gauche)
+  } else {
+    const base = Math.abs(value) || 1
+    scaleMin = value - base * 0.5
+    scaleMax = value + base * 0.5
+    optLow = 0; optHigh = 0; hasZone = false // 'none' → jauge neutre, sans zone
+  }
+  const span = (scaleMax - scaleMin) || 1
+  const frac = (x: number) => (x - scaleMin) / span
+  const clamp01 = (x: number) => Math.min(Math.max(x, 0), 1)
+  return {
+    scaleMin,
+    scaleMax,
+    optimalStart: hasZone ? clamp01(frac(optLow)) : 0,
+    optimalEnd: hasZone ? clamp01(frac(optHigh)) : 0,
+    // marge pour qu'un point hors échelle reste visible près du bord.
+    dot: Math.min(Math.max(frac(value), 0.02), 0.98),
+  }
+}
 
 // Statut d'un marqueur DB — source unique (opérateur déduit des bornes stockées).
 function statusOf(m: { value: number; ref_min: number | null; ref_max: number | null }): MarkerStatus {
@@ -84,11 +121,13 @@ function adaptMarker(
   // One value per panel, oldest → newest (MODIF 4). Defaults to the single value.
   history: number[] = [m.value],
 ): BloodMarker {
-  const rangeMin = m.ref_min ?? m.value * 0.6
-  const rangeMax = m.ref_max ?? m.value * 1.4
+  const op = inferOperator(m.ref_min, m.ref_max)
+  const gauge = computeGauge(m.value, m.ref_min, m.ref_max, op)
+  const rangeMin = gauge.scaleMin
+  const rangeMax = gauge.scaleMax
   const mid = (rangeMin + rangeMax) / 2
 
-  const warn = isOutOfRange(getMarkerStatus(m.value, m.ref_min, m.ref_max))
+  const warn = isOutOfRange(getMarkerStatus(m.value, m.ref_min, m.ref_max, op))
   const explanationKey = getExplanationKey(m.marker_code, m.marker_name)
 
   // Explanation: prefer the existing curated map, else fall back to the local
@@ -124,6 +163,7 @@ function adaptMarker(
     trendDir,
     trendLabel,
     history,
+    gauge,
   }
 }
 

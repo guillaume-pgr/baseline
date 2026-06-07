@@ -21,6 +21,16 @@ export type BloodMarker = {
   // Optional per-marker explanation (real data: filled from the local reference).
   // Demo markers fall back to MARKER_EXPLANATIONS by id.
   explanation?: string
+  // Optional gauge geometry (real data) — échelle + zone optimale + position du
+  // point, calculées selon l'opérateur (range/lt/gt/none). Fractions 0..1.
+  // Absent → rendu jauge historique (gradient fixe) pour les seeds démo.
+  gauge?: {
+    scaleMin: number
+    scaleMax: number
+    optimalStart: number
+    optimalEnd: number
+    dot: number
+  }
 }
 
 export type BloodCategory = {

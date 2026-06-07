@@ -11,9 +11,47 @@ import ImportModal from '@/components/ImportModal'
 import { type BloodMarker, type BloodCategory, MARKER_EXPLANATIONS } from '@/data/bloodwork-data'
 import PageSummary from '@/components/detail/PageSummary'
 
+// ─── Gauge ───────────────────────────────────────────────────────────────────
+// Curseur de position. Real data : échelle + zone optimale calculées par
+// l'adapter (m.gauge, gère range/lt/gt/none). Démo : gradient fixe historique.
+const FIXED_GRADIENT = 'linear-gradient(to right, var(--color-rust-soft) 0%, var(--color-rust-soft) 12%, var(--color-amber-soft) 12%, var(--color-amber-soft) 28%, var(--color-lichen-soft) 28%, var(--color-lichen-soft) 72%, var(--color-amber-soft) 72%, var(--color-amber-soft) 88%, var(--color-rust-soft) 88%, var(--color-rust-soft) 100%)'
+
+function GaugeDot({ left, warn, size }: { left: number; warn: boolean; size: number }) {
+  return (
+    <div style={{
+      position: 'absolute', top: '50%', left: `${left}%`, transform: 'translate(-50%, -50%)',
+      width: size, height: size,
+      backgroundColor: warn ? 'var(--color-rust)' : 'var(--color-ink)',
+      border: '2px solid var(--color-surface)', borderRadius: '50%',
+      boxShadow: size >= 10 ? '0 1px 3px rgba(0,0,0,0.15)' : undefined,
+    }} />
+  )
+}
+
+function GaugeBar({ m, dotSize }: { m: BloodMarker; dotSize: number }) {
+  if (m.gauge) {
+    const g = m.gauge
+    const zoneWidth = Math.max(g.optimalEnd - g.optimalStart, 0) * 100
+    return (
+      <div style={{ position: 'relative', height: 4, borderRadius: 999, backgroundColor: 'var(--color-surface-3)' }}>
+        {zoneWidth > 0 && (
+          <div style={{ position: 'absolute', top: 0, left: `${g.optimalStart * 100}%`, width: `${zoneWidth}%`, height: '100%', backgroundColor: 'var(--color-lichen-soft)', borderRadius: 999 }} />
+        )}
+        <GaugeDot left={g.dot * 100} warn={m.warn} size={dotSize} />
+      </div>
+    )
+  }
+  // Fallback (seeds démo) : gradient fixe + position depuis range.
+  const pct = Math.min(Math.max((m.value - m.range[0]) / (m.range[1] - m.range[0]), 0), 1) * 100
+  return (
+    <div style={{ position: 'relative', height: 4, borderRadius: 999, background: FIXED_GRADIENT }}>
+      <GaugeDot left={pct} warn={m.warn} size={dotSize} />
+    </div>
+  )
+}
+
 // ─── Marker bar (gradient + cursor) ─────────────────────────────────────────
 function MarkerRow({ m }: { m: BloodMarker }) {
-  const pct = Math.min(Math.max((m.value - m.range[0]) / (m.range[1] - m.range[0]), 0), 1) * 100
   const trendColor = m.trendDir === 'up' ? '#5C7A4A' : m.trendDir === 'down' ? 'var(--color-rust)' : 'var(--color-ink-3)'
 
   return (
@@ -28,16 +66,7 @@ function MarkerRow({ m }: { m: BloodMarker }) {
       </div>
 
       <div>
-        <div style={{ position: 'relative', height: 4, borderRadius: 999, background: 'linear-gradient(to right, var(--color-rust-soft) 0%, var(--color-rust-soft) 12%, var(--color-amber-soft) 12%, var(--color-amber-soft) 28%, var(--color-lichen-soft) 28%, var(--color-lichen-soft) 72%, var(--color-amber-soft) 72%, var(--color-amber-soft) 88%, var(--color-rust-soft) 88%, var(--color-rust-soft) 100%)' }}>
-          <div style={{
-            position: 'absolute', top: '50%', left: `${pct}%`,
-            transform: 'translate(-50%, -50%)',
-            width: 10, height: 10,
-            backgroundColor: m.warn ? 'var(--color-rust)' : 'var(--color-ink)',
-            border: '2px solid var(--color-surface)',
-            borderRadius: '50%', boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-          }} />
-        </div>
+        <GaugeBar m={m} dotSize={10} />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', marginTop: 4 }}>
           {m.scaleLabels.map(l => <span key={l}>{l}</span>)}
         </div>
@@ -59,7 +88,6 @@ function MarkerRow({ m }: { m: BloodMarker }) {
 
 // ─── Marker row — exhaustive view (left 2/3 + right 1/3 explanation) ─────────
 function MarkerRowExhaustive({ m }: { m: BloodMarker }) {
-  const pct = Math.min(Math.max((m.value - m.range[0]) / (m.range[1] - m.range[0]), 0), 1) * 100
   const trendColor = m.trendDir === 'up' ? '#5C7A4A' : m.trendDir === 'down' ? 'var(--color-rust)' : 'var(--color-ink-3)'
   const explanation = m.explanation ?? MARKER_EXPLANATIONS[m.id]
 
@@ -76,16 +104,7 @@ function MarkerRowExhaustive({ m }: { m: BloodMarker }) {
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 2 }}>{m.context}</div>
         </div>
         <div>
-          <div style={{ position: 'relative', height: 4, borderRadius: 999, background: 'linear-gradient(to right, var(--color-rust-soft) 0%, var(--color-rust-soft) 12%, var(--color-amber-soft) 12%, var(--color-amber-soft) 28%, var(--color-lichen-soft) 28%, var(--color-lichen-soft) 72%, var(--color-amber-soft) 72%, var(--color-amber-soft) 88%, var(--color-rust-soft) 88%, var(--color-rust-soft) 100%)' }}>
-            <div style={{
-              position: 'absolute', top: '50%', left: `${pct}%`,
-              transform: 'translate(-50%, -50%)',
-              width: 8, height: 8,
-              backgroundColor: m.warn ? 'var(--color-rust)' : 'var(--color-ink)',
-              border: '2px solid var(--color-surface)',
-              borderRadius: '50%',
-            }} />
-          </div>
+          <GaugeBar m={m} dotSize={8} />
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 500, color: m.warn ? 'var(--color-rust)' : 'var(--color-ink)' }}>
