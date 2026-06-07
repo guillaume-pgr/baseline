@@ -7,7 +7,7 @@ import { jane } from '@/data/seed-jane'
 import { bloodCategories as johnBloodCategories, BILAN_DATES } from '@/data/bloodwork-data'
 import { bloodCategoriesR as janeBloodCategories, BILAN_DATES_R } from '@/data/bloodwork-jane'
 import { useSession } from './SessionContext'
-import { useRealBloodPanels } from './useRealBloodPanels'
+import { useRealBloodPanels, type RealBloodPanelData } from './useRealBloodPanels'
 import { adaptRealData } from './realDataAdapter'
 import { createClient } from '@/lib/supabase/client'
 import { ADMIN_EMAIL } from '@/lib/config'
@@ -27,6 +27,10 @@ type PersonaContextValue = {
   setMode: (mode: PersonaMode) => void
   switchDemo: (id: DemoPersonaId) => void
   setReal: () => void
+  // Real blood panels — single source, fetched once in the provider.
+  realPanels: RealBloodPanelData[]
+  realLoading: boolean
+  refreshReal: () => void
 }
 
 const PersonaContext = createContext<PersonaContextValue>({
@@ -34,6 +38,9 @@ const PersonaContext = createContext<PersonaContextValue>({
   setMode: () => {},
   switchDemo: () => {},
   setReal: () => {},
+  realPanels: [],
+  realLoading: false,
+  refreshReal: () => {},
 })
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -41,6 +48,7 @@ const PersonaContext = createContext<PersonaContextValue>({
 export function PersonaProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<PersonaState>(DEFAULT_STATE)
   const { user, profile } = useSession()
+  const { panels: realPanels, isLoading: realLoading, refetch: refreshReal } = useRealBloodPanels()
 
   // Initialize from session or localStorage — override mode based on account status
   useEffect(() => {
@@ -110,7 +118,7 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <PersonaContext.Provider value={{ state, setMode, switchDemo, setReal }}>
+    <PersonaContext.Provider value={{ state, setMode, switchDemo, setReal, realPanels, realLoading, refreshReal }}>
       {children}
     </PersonaContext.Provider>
   )
@@ -122,18 +130,24 @@ export function usePersonaContext() {
   return useContext(PersonaContext)
 }
 
+// Real blood panels (single source) + on-demand refetch — for the history list
+// and the multi-panel charts.
+export function useRealPanels() {
+  const { realPanels, realLoading, refreshReal } = usePersonaContext()
+  return { panels: realPanels, isLoading: realLoading, refetch: refreshReal }
+}
+
 // Full persona data — same shape in both demo and real mode.
 // In real mode, adapts DB data to the exact same structure as demo seeds.
 export function usePersonaData() {
-  const { state }                = usePersonaContext()
-  const { profile }              = useSession()
-  const { panels, isLoading }    = useRealBloodPanels()
+  const { state, realPanels, realLoading } = usePersonaContext()
+  const { profile }                        = useSession()
 
   if (state.mode === 'real') {
     // Still loading real data → return null (pages show loading/empty state)
-    if (isLoading || panels.length === 0) return null
+    if (realLoading || realPanels.length === 0) return null
     // Adapt real DB data to the exact same PersonaData shape as demo seeds
-    return adaptRealData(profile, panels)
+    return adaptRealData(profile, realPanels)
   }
 
   if (state.demoId === 'jane') {

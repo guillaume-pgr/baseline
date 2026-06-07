@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { IconUpload, IconDownload } from '@tabler/icons-react'
-import { usePersonaData, usePersonaContext } from '@/lib/context/PersonaContext'
+import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react'
+import { usePersonaData, usePersonaContext, useRealPanels } from '@/lib/context/PersonaContext'
 import EmptyState from '@/components/EmptyState'
 import PageHeader, { Btn } from '@/components/detail/PageHeader'
 import CohortBand from '@/components/detail/CohortBand'
@@ -173,14 +173,41 @@ function CategoryCard({ cat, dates, exhaustive }: { cat: BloodCategory; dates: s
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
+// Format an ISO date (YYYY-MM-DD) as DD/MM/YYYY.
+function formatPanelDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
 export default function BloodworkPage() {
   const data = usePersonaData()
-  const { switchDemo } = usePersonaContext()
+  const { switchDemo, state } = usePersonaContext()
+  const { panels: realPanels, refetch } = useRealPanels()
   const [filter, setFilter] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const handleImportSuccess = () => setRefreshKey(k => k + 1)
+  const isReal = state.mode === 'real'
+
+  // Import / deletion → re-read from the DB so the charts and history stay in sync.
+  const handleImportSuccess = () => { refetch(); setRefreshKey(k => k + 1) }
+
+  const handleDelete = async (panelId: string, dateLabel: string) => {
+    if (!window.confirm(`Supprimer ce bilan du ${dateLabel} ?`)) return
+    setDeletingId(panelId)
+    try {
+      const res = await fetch(`/api/health/panels/${panelId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error || 'Erreur lors de la suppression')
+      }
+      refetch()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
 
   // No data yet (real mode loading/empty, or demo mode with no data)
@@ -281,6 +308,45 @@ export default function BloodworkPage() {
           context={<>Cohorte <strong>{data.profile.cohortLabel}</strong> · médiane <strong>50ᵉ</strong>.</>}
         />
       </div>
+
+      {/* Historique des bilans — real mode only */}
+      {isReal && realPanels.length > 0 && (
+        <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px', marginBottom: 32 }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 16 }}>
+            Historique des bilans · {realPanels.length}
+          </p>
+          {realPanels.map(({ panel, markers }) => {
+            const dateLabel = formatPanelDate(panel.panel_date)
+            return (
+              <div
+                key={panel.id}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--color-line)' }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-ink)' }}>{dateLabel}</div>
+                  <div style={{ fontSize: 11, color: 'var(--color-ink-4)', marginTop: 2 }}>
+                    {panel.lab_name || 'Laboratoire'} · {markers.length} marqueur{markers.length > 1 ? 's' : ''}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDelete(panel.id, dateLabel)}
+                  disabled={deletingId === panel.id}
+                  title="Supprimer ce bilan"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
+                    padding: '6px 12px', borderRadius: 999, cursor: deletingId === panel.id ? 'default' : 'pointer',
+                    border: '1px solid var(--color-line-2)', backgroundColor: 'transparent',
+                    color: 'var(--color-rust)', opacity: deletingId === panel.id ? 0.5 : 1,
+                  }}
+                >
+                  <IconTrash size={14} />
+                  {deletingId === panel.id ? 'Suppression…' : 'Supprimer'}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Toggle filter */}
       <div style={{ marginBottom: 32 }}>

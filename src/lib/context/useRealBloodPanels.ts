@@ -16,6 +16,10 @@ export function useRealBloodPanels() {
   const [panels, setPanels] = useState<RealBloodPanelData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshIndex, setRefreshIndex] = useState(0)
+
+  // Re-fetch from the DB on demand (after an import or a deletion).
+  const refetch = () => setRefreshIndex(i => i + 1)
 
   useEffect(() => {
     if (!user) {
@@ -103,7 +107,7 @@ export function useRealBloodPanels() {
     }
 
     fetchPanels()
-  }, [user])
+  }, [user, refreshIndex])
 
-  return { panels, isLoading, error }
+  return { panels, isLoading, error, refetch }
 }
