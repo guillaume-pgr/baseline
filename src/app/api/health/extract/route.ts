@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     // Auto-complétion déterministe depuis le référentiel local (aucun appel API) :
     // unité, seuils, catégorie et explication manquants sont remplis ici, pour
     // que l'écran de validation arrive déjà complété.
-    const markers = extracted.markers.map(completeMarkerFromReference)
+    const markers = extracted.markers.map(m => completeMarkerFromReference(m))
     const unmatched = markers.filter(m => m.needsReview).length
     console.log('[api/health/extract] extracted', markers.length, 'markers,', unmatched, 'à compléter')
 
