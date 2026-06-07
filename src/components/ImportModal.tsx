@@ -1,15 +1,18 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { IconUpload, IconX, IconTrash, IconFileCheck } from '@tabler/icons-react'
+import { IconUpload, IconX, IconTrash, IconFileCheck, IconAlertTriangle } from '@tabler/icons-react'
 
-// Reassuring step labels cycled during the Vision analysis (MODIF 5).
+// Reassuring step labels cycled during the Vision analysis.
 const ANALYSIS_STEPS = [
   'Lecture du document…',
   'Extraction des marqueurs…',
-  'Vérification des unités…',
+  'Vérification des valeurs…',
   'Presque prêt…',
 ]
+
+// En dessous de ce seuil, un marqueur est discrètement signalé à vérifier.
+const LOW_CONFIDENCE = 0.6
 
 interface ImportModalProps {
   open: boolean
@@ -18,7 +21,7 @@ interface ImportModalProps {
 }
 
 const ACCEPTED_TYPES = ['application/pdf', 'image/png', 'image/jpeg']
-const ACCEPTED_HINT = 'PDF, PNG, JPG (max 10 Mo)'
+const ACCEPTED_HINT = 'PDF, PNG, JPG (max 15 Mo)'
 
 // Shape returned by /api/health/extract for each marker.
 interface ExtractedMarker {
@@ -30,6 +33,9 @@ interface ExtractedMarker {
   refMax?: number | null
   organSystem?: string | null
   needsReview?: boolean
+  confidence?: number
+  verifyWarning?: boolean
+  verifyReasons?: string[]
 }
 
 // Editable representation — numeric fields held as strings while the user reviews.
@@ -42,6 +48,21 @@ interface EditableMarker {
   refMax: string
   organSystem: string
   needsReview: boolean
+  confidence: number
+  verifyWarning: boolean
+  verifyReasons: string[]
+}
+
+// Un marqueur à vérifier : non reconnu, recoupement échoué, ou confiance basse.
+function isFlagged(m: EditableMarker): boolean {
+  return m.needsReview || m.verifyWarning || m.confidence < LOW_CONFIDENCE
+}
+
+function flagTooltip(m: EditableMarker): string {
+  const reasons = [...m.verifyReasons]
+  if (m.needsReview) reasons.unshift('Marqueur non reconnu — vérifie l’unité et les seuils')
+  if (m.confidence < LOW_CONFIDENCE && !m.verifyWarning) reasons.push('Lecture peu sûre — vérifie la valeur')
+  return reasons.join(' · ') || 'À vérifier'
 }
 
 type Step = 'select' | 'review'
@@ -125,6 +146,9 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
           refMax: m.refMax != null ? String(m.refMax) : '',
           organSystem: m.organSystem ?? 'autres',
           needsReview: m.needsReview ?? false,
+          confidence: m.confidence ?? 1,
+          verifyWarning: m.verifyWarning ?? false,
+          verifyReasons: m.verifyReasons ?? [],
         })),
       )
       setStep('review')
@@ -313,47 +337,66 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
               </label>
             </div>
 
+            {/* Bandeau de revue ciblée : seuls les marqueurs à vérifier sont mis en avant */}
+            {(() => {
+              const flaggedCount = markers.filter(isFlagged).length
+              if (flaggedCount > 0) {
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', marginBottom: 12, backgroundColor: 'var(--color-amber-soft)', borderRadius: 8, fontSize: 12, color: 'var(--color-ink-2)' }}>
+                    <IconAlertTriangle size={15} color="var(--color-amber)" style={{ flexShrink: 0 }} />
+                    {flaggedCount} valeur{flaggedCount > 1 ? 's' : ''} à vérifier (surlignée{flaggedCount > 1 ? 's' : ''} ci-dessous). Le reste a été lu avec une bonne confiance.
+                  </div>
+                )
+              }
+              return (
+                <div style={{ padding: '10px 12px', marginBottom: 12, backgroundColor: 'var(--color-lichen-soft)', borderRadius: 8, fontSize: 12, color: '#3d5c2d' }}>
+                  Tout a été lu avec une bonne confiance. Vérifie d’un coup d’œil et enregistre.
+                </div>
+              )
+            })()}
+
             <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16, border: '1px solid var(--color-line)', borderRadius: 8 }}>
               <div style={{
-                display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 0.7fr 0.7fr 28px',
+                display: 'grid', gridTemplateColumns: '2.3fr 0.8fr 0.7fr 0.6fr 0.6fr 28px',
                 gap: 8, padding: '8px 12px', position: 'sticky', top: 0,
                 backgroundColor: 'var(--color-surface)', borderBottom: '1px solid var(--color-line)',
                 fontSize: 10, fontWeight: 600, color: 'var(--color-ink-4)', textTransform: 'uppercase', letterSpacing: '0.04em',
               }}>
                 <span>Marqueur</span><span>Valeur</span><span>Unité</span><span>Réf. min</span><span>Réf. max</span><span />
               </div>
-              {markers.map((m, idx) => (
-                <div key={idx} style={{
-                  display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 0.7fr 0.7fr 28px',
-                  gap: 8, padding: '6px 12px', alignItems: 'center', borderBottom: '1px solid var(--color-line)',
-                }}>
-                  <input
-                    value={m.markerName}
-                    onChange={e => updateMarker(idx, 'markerName', e.target.value)}
-                    style={m.needsReview ? { ...inputCell, borderColor: 'var(--color-amber)' } : inputCell}
-                    title={m.needsReview ? 'Marqueur non reconnu — vérifie l’unité et les seuils.' : undefined}
-                  />
-                  <input value={m.value} onChange={e => updateMarker(idx, 'value', e.target.value)} style={inputCell} inputMode="decimal" />
-                  <input value={m.unit} onChange={e => updateMarker(idx, 'unit', e.target.value)} style={inputCell} />
-                  <input value={m.refMin} onChange={e => updateMarker(idx, 'refMin', e.target.value)} style={inputCell} inputMode="decimal" />
-                  <input value={m.refMax} onChange={e => updateMarker(idx, 'refMax', e.target.value)} style={inputCell} inputMode="decimal" />
-                  <button onClick={() => removeMarker(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--color-ink-4)' }}>
-                    <IconTrash size={15} />
-                  </button>
-                </div>
-              ))}
+              {markers.map((m, idx) => {
+                const flagged = isFlagged(m)
+                return (
+                  <div key={idx} style={{
+                    display: 'grid', gridTemplateColumns: '2.3fr 0.8fr 0.7fr 0.6fr 0.6fr 28px',
+                    gap: 8, padding: '6px 12px', alignItems: 'center', borderBottom: '1px solid var(--color-line)',
+                    borderLeft: flagged ? '3px solid var(--color-amber)' : '3px solid transparent',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                      {flagged && <IconAlertTriangle size={13} color="var(--color-amber)" style={{ flexShrink: 0 }} />}
+                      <input
+                        value={m.markerName}
+                        onChange={e => updateMarker(idx, 'markerName', e.target.value)}
+                        style={flagged ? { ...inputCell, borderColor: 'var(--color-amber)' } : inputCell}
+                        title={flagged ? flagTooltip(m) : m.markerName}
+                      />
+                    </div>
+                    <input value={m.value} onChange={e => updateMarker(idx, 'value', e.target.value)} style={inputCell} inputMode="decimal" />
+                    <input value={m.unit} onChange={e => updateMarker(idx, 'unit', e.target.value)} style={inputCell} />
+                    <input value={m.refMin} onChange={e => updateMarker(idx, 'refMin', e.target.value)} style={inputCell} inputMode="decimal" />
+                    <input value={m.refMax} onChange={e => updateMarker(idx, 'refMax', e.target.value)} style={inputCell} inputMode="decimal" />
+                    <button onClick={() => removeMarker(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--color-ink-4)' }}>
+                      <IconTrash size={15} />
+                    </button>
+                  </div>
+                )
+              })}
               {markers.length === 0 && (
                 <p style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--color-ink-4)' }}>
                   Aucun marqueur. Reviens en arrière et réessaie.
                 </p>
               )}
             </div>
-
-            {markers.some(m => m.needsReview) && (
-              <p style={{ fontSize: 11, color: 'var(--color-amber)', marginBottom: 10 }}>
-                Certains marqueurs n’ont pas été reconnus (bordure orange) — vérifie leur unité et leurs seuils avant d’enregistrer.
-              </p>
-            )}
 
             {error && <p style={{ color: 'var(--color-rust)', fontSize: 12, marginBottom: 12 }}>{error}</p>}
 
