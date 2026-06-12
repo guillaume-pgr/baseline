@@ -81,19 +81,6 @@ export default function SignupPage() {
 
   return (
     <div>
-      {/* Lancement banner */}
-      <div style={{
-        backgroundColor: 'var(--color-lichen-soft)',
-        border: '1px solid var(--color-lichen)',
-        borderRadius: 10,
-        padding: '12px 16px',
-        marginBottom: 28,
-      }}>
-        <p style={{ fontSize: 12.5, color: '#3d5c2d', lineHeight: 1.55, margin: 0 }}>
-          Lyvio sera bientôt disponible. Crée ton compte dès maintenant : il sera activé dès que Lyvio sera prêt.
-        </p>
-      </div>
-
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
           <h1 className="font-manrope font-light text-4xl">Crée ton compte.</h1>

@@ -24,6 +24,9 @@
   --color-line: rgba(0,0,0,0.06);
   --color-line-2: rgba(0,0,0,0.10);
 
+  /* Brand */
+  --color-brand: #E0533B; /* point du logo LYVIO. */
+
   /* Biotech accents */
   --color-aqua: #7BA8B5;
   --color-aqua-soft: #DBE6EA;

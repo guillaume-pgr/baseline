@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import AuthPanel from './AuthPanel'
 import InteractiveDemo from './InteractiveDemo'
+import Logo from '@/components/Logo'
 
 // ─── Scroll reveal hook ───────────────────────────────────────────────────────
 function useReveal() {
@@ -103,9 +104,8 @@ export default function LandingPage() {
           <div style={{ maxWidth: 980, margin: '0 auto' }}>
 
             {/* Topbar */}
-            <div className="landing-reveal" style={{ padding: '30px 0 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ width: 9, height: 9, borderRadius: '50%', backgroundColor: 'var(--color-lichen)', boxShadow: '0 0 0 4px var(--color-lichen-soft)' }} />
-              <span style={{ fontWeight: 700, fontSize: '1.2rem', letterSpacing: '-0.03em' }}>Lyvio</span>
+            <div className="landing-reveal" style={{ padding: '30px 0 0' }}>
+              <Logo size={24} />
             </div>
 
             {/* Hero */}

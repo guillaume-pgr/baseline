@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Logo from '@/components/Logo'
 
 type Mode = 'signup' | 'signin'
 
@@ -79,14 +80,9 @@ export default function AuthPanel() {
       padding: '0 clamp(26px, 2.4vw, 44px)', zIndex: 20, overflowY: 'auto',
     }}>
       {/* Brand */}
-      <div style={{ fontWeight: 700, fontSize: '0.95rem', letterSpacing: '-0.03em', marginBottom: 4 }}>Lyvio</div>
+      <Logo size={19} style={{ marginBottom: 6 }} />
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'var(--color-ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 26 }}>
         Performance health
-      </div>
-
-      {/* Launch banner */}
-      <div style={{ backgroundColor: 'var(--color-lichen-soft)', borderRadius: 9, padding: '10px 12px', fontSize: '0.72rem', color: 'var(--color-ink-2)', lineHeight: 1.45, marginBottom: 20 }}>
-        Lyvio sera bientôt disponible. Crée ton compte dès maintenant : il sera activé dès que Lyvio sera prêt.
       </div>
 
       {/* Toggle */}
