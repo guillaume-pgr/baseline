@@ -55,32 +55,56 @@ function MarkerRow({ m }: { m: BloodMarker }) {
   const trendColor = m.trendDir === 'up' ? '#5C7A4A' : m.trendDir === 'down' ? 'var(--color-rust)' : 'var(--color-ink-3)'
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '200px 1fr 110px 100px',
-      gap: 20, alignItems: 'center',
-      padding: '14px 0', borderBottom: '1px solid var(--color-line)',
-    }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 2 }}>{m.context}</div>
-      </div>
+    <div style={{ borderBottom: '1px solid var(--color-line)' }}>
+      {/* Desktop (≥md) — unchanged 4-column grid */}
+      <div className="hidden md:grid" style={{
+        gridTemplateColumns: '200px 1fr 110px 100px',
+        gap: 20, alignItems: 'center', padding: '14px 0',
+      }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 2 }}>{m.context}</div>
+        </div>
 
-      <div>
-        <GaugeBar m={m} dotSize={10} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', marginTop: 4 }}>
-          {m.scaleLabels.map(l => <span key={l}>{l}</span>)}
+        <div>
+          <GaugeBar m={m} dotSize={10} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', marginTop: 4 }}>
+            {m.scaleLabels.map(l => <span key={l}>{l}</span>)}
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 500, color: m.warn ? 'var(--color-rust)' : 'var(--color-ink)' }}>
+            {m.value.toString().replace('.', ',')}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--color-ink-4)', marginTop: 2 }}>{m.unit}</div>
+        </div>
+
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'right', color: trendColor }}>
+          {m.trendLabel}
         </div>
       </div>
 
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 500, color: m.warn ? 'var(--color-rust)' : 'var(--color-ink)' }}>
-          {m.value.toString().replace('.', ',')}
+      {/* Mobile (<md) — name+value on top, gauge full-width below */}
+      <div className="md:hidden" style={{ padding: '12px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 2 }}>{m.context}</div>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 500, color: m.warn ? 'var(--color-rust)' : 'var(--color-ink)' }}>
+              {m.value.toString().replace('.', ',')}<span style={{ fontSize: 10, color: 'var(--color-ink-4)', marginLeft: 3 }}>{m.unit}</span>
+            </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: trendColor, marginTop: 2 }}>{m.trendLabel}</div>
+          </div>
         </div>
-        <div style={{ fontSize: 10, color: 'var(--color-ink-4)', marginTop: 2 }}>{m.unit}</div>
-      </div>
-
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'right', color: trendColor }}>
-        {m.trendLabel}
+        <div style={{ marginTop: 10 }}>
+          <GaugeBar m={m} dotSize={10} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', marginTop: 4 }}>
+            {m.scaleLabels.map(l => <span key={l}>{l}</span>)}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -92,45 +116,79 @@ function MarkerRowExhaustive({ m }: { m: BloodMarker }) {
   const explanation = m.explanation ?? MARKER_EXPLANATIONS[m.id]
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '2fr 1fr',
-      gap: 24, alignItems: 'center',
-      padding: '14px 0', borderBottom: '1px solid var(--color-line)',
-    }}>
-      {/* Left 2/3: condensed marker info */}
-      <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 90px 80px', gap: 12, alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 500 }}>{m.name}</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 2 }}>{m.context}</div>
-        </div>
-        <div>
-          <GaugeBar m={m} dotSize={8} />
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 500, color: m.warn ? 'var(--color-rust)' : 'var(--color-ink)' }}>
-            {m.value.toString().replace('.', ',')}
+    <div style={{ borderBottom: '1px solid var(--color-line)' }}>
+      {/* Desktop (≥md) — unchanged: left 2/3 info + right 1/3 explanation */}
+      <div className="hidden md:grid" style={{
+        gridTemplateColumns: '2fr 1fr', gap: 24, alignItems: 'center', padding: '14px 0',
+      }}>
+        {/* Left 2/3: condensed marker info */}
+        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 90px 80px', gap: 12, alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 500 }}>{m.name}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 2 }}>{m.context}</div>
           </div>
-          <div style={{ fontSize: 9, color: 'var(--color-ink-4)', marginTop: 2 }}>{m.unit}</div>
+          <div>
+            <GaugeBar m={m} dotSize={8} />
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 500, color: m.warn ? 'var(--color-rust)' : 'var(--color-ink)' }}>
+              {m.value.toString().replace('.', ',')}
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--color-ink-4)', marginTop: 2 }}>{m.unit}</div>
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textAlign: 'right', color: trendColor }}>
+            {m.trendLabel}
+          </div>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textAlign: 'right', color: trendColor }}>
-          {m.trendLabel}
+
+        {/* Right 1/3: statut + explication */}
+        <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--color-line)' }}>
+          <span style={{
+            display: 'inline-block', fontFamily: 'var(--font-mono)', fontSize: 9,
+            letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6,
+            color: m.warn ? 'var(--color-rust)' : '#5C7A4A',
+          }}>
+            {m.warn ? 'À surveiller' : 'Optimal'}
+          </span>
+          {explanation && (
+            <p style={{ fontSize: 11, color: 'var(--color-ink-3)', lineHeight: 1.55, margin: 0 }}>
+              {explanation}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Right 1/3: statut + explication */}
-      <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--color-line)' }}>
-        <span style={{
-          display: 'inline-block', fontFamily: 'var(--font-mono)', fontSize: 9,
-          letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6,
-          color: m.warn ? 'var(--color-rust)' : '#5C7A4A',
-        }}>
-          {m.warn ? 'À surveiller' : 'Optimal'}
-        </span>
-        {explanation && (
-          <p style={{ fontSize: 11, color: 'var(--color-ink-3)', lineHeight: 1.55, margin: 0 }}>
-            {explanation}
-          </p>
-        )}
+      {/* Mobile (<md) — stacked: name+value, gauge, status + explanation */}
+      <div className="md:hidden" style={{ padding: '12px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-ink-4)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 2 }}>{m.context}</div>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 500, color: m.warn ? 'var(--color-rust)' : 'var(--color-ink)' }}>
+              {m.value.toString().replace('.', ',')}<span style={{ fontSize: 10, color: 'var(--color-ink-4)', marginLeft: 3 }}>{m.unit}</span>
+            </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: trendColor, marginTop: 2 }}>{m.trendLabel}</div>
+          </div>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <GaugeBar m={m} dotSize={9} />
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <span style={{
+            display: 'inline-block', fontFamily: 'var(--font-mono)', fontSize: 9,
+            letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 5,
+            color: m.warn ? 'var(--color-rust)' : '#5C7A4A',
+          }}>
+            {m.warn ? 'À surveiller' : 'Optimal'}
+          </span>
+          {explanation && (
+            <p style={{ fontSize: 11, color: 'var(--color-ink-3)', lineHeight: 1.55, margin: 0 }}>
+              {explanation}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -234,7 +292,7 @@ export default function BloodworkPage() {
   // No data yet (real mode loading/empty, or demo mode with no data)
   if (!data) {
     return (
-      <div style={{ padding: '32px 56px 80px' }}>
+      <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
         <ImportModal
           open={importOpen}
           onClose={() => setImportOpen(false)}
@@ -264,7 +322,7 @@ export default function BloodworkPage() {
   const dates = Array.from(data.bloodwork.dates)
 
   return (
-    <div style={{ padding: '32px 56px 80px' }} key={refreshKey}>
+    <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20" key={refreshKey}>
       <ImportModal
         open={importOpen}
         onClose={() => setImportOpen(false)}
@@ -302,7 +360,7 @@ export default function BloodworkPage() {
       <PageSummary text={data.pageSummaries.bloodwork} />
 
       {/* Value hero */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, padding: '36px 40px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, marginBottom: 48, alignItems: 'center' }}>
+      <div className="grid grid-cols-1 gap-8 px-5 py-6 mb-8 md:grid-cols-2 md:gap-12 md:px-10 md:py-9 md:mb-12" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, alignItems: 'center' }}>
         <div>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 14 }}>Bilan du {hero.bilanDate}</p>
           <div style={{ fontSize: 92, fontWeight: 200, letterSpacing: '-0.05em', lineHeight: 0.9, color: 'var(--color-ink)', marginBottom: 8 }}>

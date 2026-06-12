@@ -14,7 +14,7 @@ export default function CohortBand({ percentile, warn, label, context }: CohortB
         </p>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 32, alignItems: 'center' }}>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_2fr] md:gap-8" style={{ alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 56, fontWeight: 300, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 6 }}>
             {percentile}<sup style={{ fontSize: 22, verticalAlign: 'super', marginLeft: 2 }}>ᵉ</sup>

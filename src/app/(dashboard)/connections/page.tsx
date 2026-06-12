@@ -115,7 +115,7 @@ export default function ConnectionsPage() {
   }
 
   return (
-    <div style={{ padding: '32px 56px 80px' }}>
+    <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
       <PageHeader
         section="Appareils connectés"
         title={<>Appareils <strong style={{ fontWeight: 700 }}>connectés</strong></>}
@@ -130,7 +130,7 @@ export default function ConnectionsPage() {
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 16 }}>
             Sources actives (démo) · {ACTIVE_DEMO.length} appareils
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {ACTIVE_DEMO.map(d => <DeviceCard key={d.name} d={d} />)}
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function ConnectionsPage() {
       <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 16 }}>
         {isDemo ? 'Connecteurs supportés' : 'Connecter un appareil'}
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {AVAILABLE.map(c => (
           <ConnectorCard key={c.name} c={c} onConnect={() => handleConnect(c.name)} />
         ))}

@@ -116,7 +116,7 @@ export default function SleepPage() {
 
   if (!data || !data.sleepData) {
     return (
-      <div style={{ padding: '32px 56px 80px' }}>
+      <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
         <EmptyState
           icon="moon-stars"
           iconColor="lavender"
@@ -139,7 +139,7 @@ export default function SleepPage() {
   const sleepData = data.sleepData
 
   return (
-    <div style={{ padding: '32px 56px 80px' }}>
+    <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
       <PageHeader
         section="Sommeil & HRV"
         title={<>Sommeil <strong style={{ fontWeight: 700 }}>& HRV</strong></>}
@@ -148,7 +148,7 @@ export default function SleepPage() {
       />
       <PageSummary text={data.pageSummaries.sleep} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+      <div className="grid grid-cols-2 gap-3 mb-8 md:grid-cols-4 md:gap-4 md:mb-8">
         {sleepData.kpis.map(k => <KpiCard key={k.label} {...k} />)}
       </div>
 

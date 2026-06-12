@@ -94,7 +94,7 @@ export default function MicrobiomePage() {
 
   if (!data || !data.microbiomeData) {
     return (
-      <div style={{ padding: '32px 56px 80px' }}>
+      <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
         <EmptyState
           icon="bacteria"
           iconColor="amber"
@@ -117,7 +117,7 @@ export default function MicrobiomePage() {
   const microbiomeData = data.microbiomeData
 
   return (
-    <div style={{ padding: '32px 56px 80px' }}>
+    <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
       <PageHeader
         section="Microbiote"
         title={<>Micro<strong style={{ fontWeight: 700 }}>biote</strong></>}
@@ -127,7 +127,7 @@ export default function MicrobiomePage() {
       <PageSummary text={data.pageSummaries.microbiome} />
 
       {/* Main layout: donut + legend + bacteria */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 40, marginBottom: 32 }}>
+      <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-[280px_1fr] md:gap-10 md:mb-8">
         {/* Donut panel */}
         <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '28px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', alignSelf: 'flex-start' }}>

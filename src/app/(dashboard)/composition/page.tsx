@@ -207,7 +207,7 @@ export default function CompositionPage() {
 
   if (!data || !data.compositionData) {
     return (
-      <div style={{ padding: '32px 56px 80px' }}>
+      <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
         <EmptyState
           icon="stretching"
           iconColor="lichen"
@@ -230,7 +230,7 @@ export default function CompositionPage() {
   const compositionData = data.compositionData
 
   return (
-    <div style={{ padding: '32px 56px 80px' }}>
+    <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
       <PageHeader
         section="Composition corporelle"
         title={<>Composition <strong style={{ fontWeight: 700 }}>corporelle</strong></>}
@@ -240,7 +240,7 @@ export default function CompositionPage() {
       <PageSummary text={data.pageSummaries.composition} />
 
       {/* Hero: silhouette + stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, marginBottom: 48, alignItems: 'start' }}>
+      <div className="grid grid-cols-1 gap-7 mb-8 md:grid-cols-2 md:gap-12 md:mb-12" style={{ alignItems: 'start' }}>
         {/* Silhouette panel */}
         <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '32px 36px 40px' }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-ink-4)', marginBottom: 28, textAlign: 'center' }}>

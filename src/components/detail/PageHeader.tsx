@@ -10,7 +10,7 @@ type PageHeaderProps = {
 
 export default function PageHeader({ section, title, sub, actions }: PageHeaderProps) {
   return (
-    <div style={{ paddingBottom: 28, borderBottom: '1px solid var(--color-line)', marginBottom: 48 }}>
+    <div className="pb-6 mb-8 md:pb-7 md:mb-12" style={{ borderBottom: '1px solid var(--color-line)' }}>
       {/* Breadcrumb */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
@@ -25,10 +25,10 @@ export default function PageHeader({ section, title, sub, actions }: PageHeaderP
         <span>{section}</span>
       </div>
 
-      {/* Title row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'end', gap: 32 }}>
+      {/* Title row — stacks on mobile, title + actions side-by-side on ≥md */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:gap-8" style={{ alignItems: 'end' }}>
         <div>
-          <h1 style={{ fontSize: '2.75rem', fontWeight: 300, letterSpacing: '-0.035em', lineHeight: 1.05, marginBottom: 12 }}>
+          <h1 className="text-3xl md:text-[2.75rem]" style={{ fontWeight: 300, letterSpacing: '-0.035em', lineHeight: 1.05, marginBottom: 12 }}>
             {title}
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-ink-3)', maxWidth: 540, lineHeight: 1.6 }}>
@@ -36,7 +36,7 @@ export default function PageHeader({ section, title, sub, actions }: PageHeaderP
           </p>
         </div>
         {actions && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {actions}
           </div>
         )}

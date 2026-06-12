@@ -17,7 +17,7 @@ function VO2Gauge({ vo2Value }: { vo2Value: number }) {
   const VO2_ACTIVE = ((vo2Value - 20) / 60) * C270
 
   return (
-    <svg viewBox="0 0 280 280" width={280} height={280}>
+    <svg viewBox="0 0 280 280" style={{ width: '100%', maxWidth: 280, height: 'auto' }}>
       {/* Track (full 270° arc) */}
       <path d={ARC} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={11} strokeLinecap="round" />
       {/* Active arc */}
@@ -54,7 +54,7 @@ function ZoneTable({ zones }: { zones: Array<{ zone: string; name: string; bpm: 
         Zones cardio · 90 jours
       </p>
       {zones.map(z => (
-        <div key={z.zone} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--color-line)' }}>
+        <div key={z.zone} className="grid grid-cols-1 gap-3 md:grid-cols-[2fr_1fr] md:gap-6" style={{ alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--color-line)' }}>
           {/* Left 2/3 — condensed zone info */}
           <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 80px 48px', gap: 10, alignItems: 'center' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: z.color }}>{z.zone}</span>
@@ -89,7 +89,7 @@ export default function AerobicPage() {
 
   if (!data || !data.aerobicData) {
     return (
-      <div style={{ padding: '32px 56px 80px' }}>
+      <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
         <EmptyState
           icon="activity"
           iconColor="aqua"
@@ -117,7 +117,7 @@ export default function AerobicPage() {
   const area = `${xs[0]},${H + 4} ${pts} ${xs[xs.length - 1]},${H + 4}`
 
   return (
-    <div style={{ padding: '32px 56px 80px' }}>
+    <div className="px-[18px] pt-6 pb-24 md:px-14 md:pt-8 md:pb-20">
       <PageHeader
         section="Capacité aérobie"
         title={<>Capacité <strong style={{ fontWeight: 700 }}>aérobie</strong></>}
@@ -127,7 +127,7 @@ export default function AerobicPage() {
       <PageSummary text={data.pageSummaries.aerobic} />
 
       {/* Hero: gauge + cohort */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, padding: '36px 40px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, marginBottom: 32, alignItems: 'center' }}>
+      <div className="grid grid-cols-1 gap-8 px-5 py-7 mb-8 md:grid-cols-2 md:gap-12 md:px-10 md:py-9 md:mb-8" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, alignItems: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <VO2Gauge vo2Value={aerobicData.vo2Value} />
         </div>
