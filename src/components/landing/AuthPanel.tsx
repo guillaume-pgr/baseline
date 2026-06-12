@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
+import { ADMIN_EMAIL } from '@/lib/config'
 
 type Mode = 'signup' | 'signin'
 
@@ -50,8 +51,13 @@ export default function AuthPanel() {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
       if (err) throw err
       await fetch('/api/auth/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session: data.session }) })
-      const { data: profile } = await (supabase.from('profiles').select('first_name').eq('user_id', data.user.id).single() as any)
-      router.push(profile?.first_name ? '/dashboard' : '/onboarding')
+      const { data: profile } = await (supabase.from('profiles').select('first_name, status, is_admin').eq('user_id', data.user.id).single() as any)
+      // Un compte approuvé (statut approved_* ou admin) va directement au
+      // dashboard, même si l'onboarding n'a jamais été complété (first_name vide).
+      // Sinon : onboarding si le profil n'est pas renseigné, dashboard si oui.
+      const isApproved = !!profile?.is_admin || data.user.email === ADMIN_EMAIL
+        || profile?.status === 'approved_free' || profile?.status === 'approved_premium'
+      router.push((isApproved || profile?.first_name) ? '/dashboard' : '/onboarding')
       router.refresh()
     } catch (err: any) {
       setError(err.message || 'Erreur de connexion.')

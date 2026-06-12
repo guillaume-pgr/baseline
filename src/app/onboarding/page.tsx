@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { ADMIN_EMAIL } from '@/lib/config'
 
 type OnboardingStep = 1 | 2 | 3
 
@@ -28,6 +29,30 @@ export default function OnboardingPage() {
     mode: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  // Statut réel du compte (relu depuis la DB) — pilote l'affichage de l'étape 3.
+  const [accountStatus, setAccountStatus] = useState<string | null>(null)
+
+  // Lit le statut courant à l'arrivée sur l'onboarding : l'écran « en attente »
+  // ne doit s'afficher QUE pour un vrai compte pending, jamais pour un approuvé.
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('status, is_admin')
+        .eq('user_id', user.id)
+        .single() as { data: { status: string; is_admin: boolean } | null }
+      if (!active) return
+      const isAdminAcct = !!data?.is_admin || user.email === ADMIN_EMAIL
+      setAccountStatus(isAdminAcct ? 'approved_premium' : (data?.status ?? 'pending'))
+    })()
+    return () => { active = false }
+  }, [])
+
+  const isApprovedAccount = accountStatus === 'approved_free' || accountStatus === 'approved_premium'
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -276,32 +301,53 @@ export default function OnboardingPage() {
           >
             <h1 className="font-manrope font-light text-4xl mb-4">Presque prêt !</h1>
             <p className="text-ink-3 text-sm mb-8" style={{ lineHeight: 1.6 }}>
-              Ton compte est en cours de validation. En attendant, explore Lyvio avec un profil démo.
+              {isApprovedAccount
+                ? 'Ton compte est actif. Accède à ton tableau de bord dès maintenant.'
+                : 'Ton compte est en cours de validation. En attendant, explore Lyvio avec un profil démo.'}
             </p>
 
-            {/* Pending status card */}
-            <div style={{
-              backgroundColor: 'var(--color-lichen-soft)',
-              border: '1px solid var(--color-lichen)',
-              borderRadius: 12,
-              padding: '16px 20px',
-              marginBottom: 24,
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#3d5c2d', marginBottom: 6 }}>
-                Compte en attente de validation
+            {/* Status card — pending (en attente) ou approuvé (compte actif) */}
+            {isApprovedAccount ? (
+              <div style={{
+                backgroundColor: 'var(--color-lichen-soft)',
+                border: '1px solid var(--color-lichen)',
+                borderRadius: 12,
+                padding: '16px 20px',
+                marginBottom: 24,
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#3d5c2d', marginBottom: 6 }}>
+                  Compte actif · accès complet
+                </div>
+                <p style={{ fontSize: 11.5, color: '#3d5c2d', lineHeight: 1.55, margin: 0 }}>
+                  Ton compte est validé. Tu accèdes directement à tes données en mode réel.
+                </p>
               </div>
-              <p style={{ fontSize: 11.5, color: '#3d5c2d', lineHeight: 1.55, margin: 0 }}>
-                Nous activons chaque compte manuellement pour garantir la qualité de l'expérience.
-                Tu recevras un email dès que ton accès sera prêt.
-              </p>
-            </div>
+            ) : (
+              <div style={{
+                backgroundColor: 'var(--color-amber-soft)',
+                border: '1px solid var(--color-amber)',
+                borderRadius: 12,
+                padding: '16px 20px',
+                marginBottom: 24,
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#7a5a1e', marginBottom: 6 }}>
+                  Compte en attente de validation
+                </div>
+                <p style={{ fontSize: 11.5, color: '#7a5a1e', lineHeight: 1.55, margin: 0 }}>
+                  Nous activons chaque compte manuellement pour garantir la qualité de l'expérience.
+                  Tu recevras un email dès que ton accès sera prêt.
+                </p>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={isLoading}
               className="w-full bg-black text-white py-2 rounded-lg font-medium hover:bg-ink disabled:opacity-50 transition"
             >
-              {isLoading ? 'Création...' : 'Explorer le mode démo'}
+              {isLoading
+                ? 'Création...'
+                : isApprovedAccount ? 'Accéder à mon tableau de bord' : 'Explorer le mode démo'}
             </button>
           </form>
         )}

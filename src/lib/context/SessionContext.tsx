@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
 
@@ -15,6 +15,7 @@ type SessionContextValue = {
   profile: Profile | null
   isLoading: boolean
   signOut: () => Promise<void>
+  refetchProfile: () => Promise<void>
 }
 
 const SessionContext = createContext<SessionContextValue>({
@@ -22,12 +23,30 @@ const SessionContext = createContext<SessionContextValue>({
   profile: null,
   isLoading: true,
   signOut: async () => {},
+  refetchProfile: async () => {},
 })
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const userIdRef = useRef<string | null>(null)
+
+  // Toujours relire la ligne profiles fraîche depuis la DB (unique par user_id)
+  // → le statut (pending/approved) n'est jamais figé en cache.
+  const fetchProfile = useCallback(async (userId: string) => {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single() as { data: Profile | null }
+    setProfile(data ?? null)
+  }, [])
+
+  const refetchProfile = useCallback(async () => {
+    if (userIdRef.current) await fetchProfile(userIdRef.current)
+  }, [fetchProfile])
 
   useEffect(() => {
     const supabase = createClient()
@@ -40,19 +59,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         } = await supabase.auth.getUser()
 
         if (authUser) {
+          userIdRef.current = authUser.id
           setUser({ id: authUser.id, email: authUser.email })
-
-          // Fetch profile
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', authUser.id)
-            .single() as any
-
-          if (profileData) {
-            setProfile(profileData)
-          }
+          await fetchProfile(authUser.id)
         } else {
+          userIdRef.current = null
           setUser(null)
           setProfile(null)
         }
@@ -65,24 +76,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
     checkSession()
 
-    // Listen for auth changes
+    // Listen for auth changes (login/logout) — relit le profil à chaque connexion
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
+        userIdRef.current = session.user.id
         setUser({ id: session.user.id, email: session.user.email })
-
-        // Fetch updated profile
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single() as any
-
-        if (profileData) {
-          setProfile(profileData)
-        }
+        await fetchProfile(session.user.id)
       } else {
+        userIdRef.current = null
         setUser(null)
         setProfile(null)
       }
@@ -91,7 +94,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [fetchProfile])
+
+  // Relit le profil quand l'onglet reprend le focus : une approbation faite
+  // ailleurs (admin) est reflétée sans rechargement complet.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && userIdRef.current) {
+        fetchProfile(userIdRef.current)
+      }
+    }
+    window.addEventListener('focus', onVisible)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('focus', onVisible)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [fetchProfile])
 
   const signOut = async () => {
     try {
@@ -100,12 +119,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('[SessionContext] signOut error:', err)
     }
+    userIdRef.current = null
     setUser(null)
     setProfile(null)
   }
 
   return (
-    <SessionContext.Provider value={{ user, profile, isLoading, signOut }}>
+    <SessionContext.Provider value={{ user, profile, isLoading, signOut, refetchProfile }}>
       {children}
     </SessionContext.Provider>
   )
