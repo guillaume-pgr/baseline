@@ -94,8 +94,11 @@ export default function OnboardingPage() {
       const cgvAcceptedAt = sessionStorage.getItem('lyvio.cgv_accepted_at') || new Date().toISOString()
       sessionStorage.removeItem('lyvio.cgv_accepted_at')
 
-      // Create profile in Supabase — status pending by default
-      const { error } = await supabase.from('profiles').insert({
+      // La ligne `profiles` est créée automatiquement à l'inscription par le
+      // trigger Postgres (handle_new_user, migration 0004). On la COMPLÈTE ici
+      // via upsert (clé user_id) plutôt que de l'insérer → idempotent, et le
+      // statut existant (pending / approved) n'est jamais écrasé.
+      const { error } = await supabase.from('profiles').upsert({
         user_id: user.id,
         first_name: formData.firstName,
         last_name: formData.lastName || null,
@@ -103,9 +106,8 @@ export default function OnboardingPage() {
         sex: (formData.sex as 'M' | 'F') || null,
         height_cm: formData.heightCm ? Number(formData.heightCm) : null,
         current_mode: 'demo',
-        status: 'pending',
         cgv_accepted_at: cgvAcceptedAt,
-      } as any)
+      } as any, { onConflict: 'user_id' })
 
       if (error) {
         setErrors({ form: 'Erreur lors de la création du profil' })
