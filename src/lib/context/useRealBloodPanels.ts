@@ -33,16 +33,21 @@ export function useRealBloodPanels() {
         const supabase = createClient()
         console.log('[useRealBloodPanels] fetching for user:', user.id)
 
-        // Get user profile
+        // Get user profile — lecture déterministe et tolérante aux doublons
+        // (même ligne que l'écriture côté import : la plus ancienne). .single()
+        // levait une erreur si ≠ 1 ligne profiles → panels restait vide et
+        // l'empty state s'affichait à tort alors que la donnée existe.
         const profileResult = await supabase
           .from('profiles')
           .select('id')
           .eq('user_id', user.id)
-          .single() as any
+          .order('created_at', { ascending: true })
+          .limit(1) as any
 
         console.log('[useRealBloodPanels] profile result:', profileResult)
 
-        const { data: profile, error: profileError } = profileResult
+        const { data: profileRows, error: profileError } = profileResult
+        const profile = Array.isArray(profileRows) ? profileRows[0] : profileRows
 
         if (profileError) {
           console.error('[useRealBloodPanels] profile error:', profileError)

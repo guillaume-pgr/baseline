@@ -17,12 +17,18 @@ export async function checkBloodPanelGate(
   | { ok: true; profileId: string }
   | { ok: false; status: number; error: string }
 > {
-  const { data: profile } = await supabase
+  // Lecture déterministe et tolérante aux doublons : .single() levait une erreur
+  // si l'utilisateur avait ≠ 1 ligne profiles (0 = orphelin, 2+ = doublon), ce qui
+  // renvoyait 404 et bloquait l'import. On prend la ligne la plus ancienne — la
+  // MÊME que celle lue côté affichage (useRealBloodPanels) → write/read alignés.
+  const { data: profiles } = await supabase
     .from('profiles')
     .select('id, status, is_admin')
     .eq('user_id', user.id)
-    .single() as { data: { id: string; status: string; is_admin: boolean } | null }
+    .order('created_at', { ascending: true })
+    .limit(1) as { data: { id: string; status: string; is_admin: boolean }[] | null }
 
+  const profile = profiles?.[0]
   if (!profile) {
     return { ok: false, status: 404, error: 'Profil non trouvé' }
   }
