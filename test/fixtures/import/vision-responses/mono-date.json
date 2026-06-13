@@ -1,0 +1,96 @@
+{
+  "_note": "FIXTURE SYNTHÉTIQUE — aucune donnée réelle (pas de patient/INS/RPPS réels). Représente la sortie de l'outil record_lab_report (Claude Vision) pour un bilan mono-date simple. Rejouée par les tests, sans appel API.",
+  "metadata": {
+    "lab_name": "Laboratoire Synthétique",
+    "collection_date": "2026-03-02",
+    "report_date": "2026-03-03",
+    "patient_sex": "M",
+    "patient_age": 42
+  },
+  "markers": [
+    {
+      "raw_name": "Glycémie à jeun",
+      "value": 0.95,
+      "raw_unit": "g/L",
+      "ref_low": 0.70,
+      "ref_high": 1.10,
+      "ref_operator": "range",
+      "secondary_value": null,
+      "secondary_unit": null,
+      "section": "Glucides",
+      "confidence": 0.98,
+      "is_patient_value": true,
+      "prior_values": []
+    },
+    {
+      "raw_name": "Créatinine",
+      "value": 9.0,
+      "raw_unit": "mg/L",
+      "ref_low": 6,
+      "ref_high": 13,
+      "ref_operator": "range",
+      "secondary_value": null,
+      "secondary_unit": null,
+      "section": "Reins",
+      "confidence": 0.97,
+      "is_patient_value": true,
+      "prior_values": []
+    },
+    {
+      "raw_name": "Hémoglobine",
+      "value": 14.5,
+      "raw_unit": "g/dL",
+      "ref_low": 12,
+      "ref_high": 18,
+      "ref_operator": "range",
+      "secondary_value": null,
+      "secondary_unit": null,
+      "section": "Hématologie",
+      "confidence": 0.96,
+      "is_patient_value": true,
+      "prior_values": []
+    },
+    {
+      "raw_name": "TSH",
+      "value": 2.10,
+      "raw_unit": "mUI/L",
+      "ref_low": 0.27,
+      "ref_high": 4.20,
+      "ref_operator": "range",
+      "secondary_value": null,
+      "secondary_unit": null,
+      "section": "Thyroïde",
+      "confidence": 0.95,
+      "is_patient_value": true,
+      "prior_values": []
+    },
+    {
+      "raw_name": "Temps de Quick du témoin",
+      "value": 12.3,
+      "raw_unit": "s",
+      "ref_low": null,
+      "ref_high": null,
+      "ref_operator": "none",
+      "secondary_value": null,
+      "secondary_unit": null,
+      "section": "Hémostase",
+      "confidence": 0.9,
+      "is_patient_value": false,
+      "prior_values": []
+    },
+    {
+      "raw_name": "Turbidité",
+      "value": 1.0,
+      "raw_unit": "",
+      "ref_low": null,
+      "ref_high": null,
+      "ref_operator": "none",
+      "secondary_value": null,
+      "secondary_unit": null,
+      "section": "Technique",
+      "confidence": 0.5,
+      "is_patient_value": true,
+      "prior_values": []
+    }
+  ]
+}

@@ -3,8 +3,8 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { getAnthropicClient } from '@/lib/anthropic'
 import { checkBloodPanelGate } from '@/lib/health/gating'
-import { reconcileExtraction, type RawExtraction, type ReconciledMarker } from '@/lib/health/reconcile'
-import { verifyMarkers } from '@/lib/health/verify'
+import { reconcileExtraction, type RawExtraction } from '@/lib/health/reconcile'
+import { groupIntoDatedPanels } from '@/lib/health/group-panels'
 
 // Modèle d'extraction = le plus précis disponible (le chat reste sur Sonnet).
 const MODEL_EXTRACTION = 'claude-opus-4-8'
@@ -236,44 +236,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ─── Auto-vérification du bilan du JOUR (sous-étape D, zéro appel API) ────
-    const { markers, globalConfidence } = verifyMarkers(panel.markers, pdfText)
+    // ─── Auto-vérification + regroupement en bilans datés (zéro appel API) ───
+    // Logique pure et testable (test/import) : bilan du jour + 1 par date
+    // d'antériorité distincte.
+    const { panels, globalConfidence } = groupIntoDatedPanels(panel.markers, panel.panelDate, pdfText)
 
-    // ─── Regroupement en bilans datés (antériorités) ─────────────────────────
-    // Chaque valeur d'antériorité (marqueur, date) devient un marqueur d'un bilan
-    // daté distinct, héritant unité/intervalle/explication du marqueur du jour.
-    const priorByDate = new Map<string, ReconciledMarker[]>()
-    for (const m of panel.markers) {
-      for (const pv of m.priorValues) {
-        if (pv.date === panel.panelDate) continue // même date que le bilan du jour
-        if (!priorByDate.has(pv.date)) priorByDate.set(pv.date, [])
-        priorByDate.get(pv.date)!.push({
-          ...m,
-          value: pv.value,
-          rawValue: pv.rawValue,
-          // L'antériorité est plus risquée → légère pénalité de confiance, et la
-          // colonne est marquée priorColumn dans verifyMarkers (seuil relevé).
-          confidence: Math.min(m.confidence, 0.9),
-          priorValues: [],
-        })
-      }
-    }
-
-    const priorPanels = [...priorByDate.entries()]
-      .sort((a, b) => b[0].localeCompare(a[0])) // dates décroissantes
-      .map(([date, ms]) => ({
-        date,
-        isPrimary: false,
-        markers: verifyMarkers(ms, pdfText, { priorColumn: true }).markers,
-      }))
-
-    const panels = [
-      { date: panel.panelDate, isPrimary: true, markers },
-      ...priorPanels,
-    ]
-
-    console.log('[api/health/extract] réconcilié', markers.length, 'marqueurs du jour ;',
-      priorPanels.length, 'bilan(s) d\'antériorité',
+    console.log('[api/health/extract] réconcilié', panels[0].markers.length, 'marqueurs du jour ;',
+      panels.length - 1, 'bilan(s) d\'antériorité',
       `(${panels.map(p => `${p.date}:${p.markers.length}`).join(' · ')})`,
       `confiance ${globalConfidence}`)
 

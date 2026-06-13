@@ -1,0 +1,40 @@
+{
+  "_note": "FIXTURE SYNTHÉTIQUE — aucune donnée réelle. Edge case : marqueur bi-unités (cholestérol g/L + mmol/L sur la même ligne → UN seul marqueur, pas deux) et antériorité PARTIELLE (le cholestérol a une valeur antérieure au 2025-04-25, mais pas la TSH). Doit produire 2 bilans : 2026-03-02 (2 marqueurs) et 2025-04-25 (cholestérol seul).",
+  "metadata": {
+    "lab_name": "Laboratoire Synthétique",
+    "collection_date": "2026-03-02",
+    "report_date": "2026-03-03",
+    "patient_sex": "M",
+    "patient_age": 38
+  },
+  "markers": [
+    {
+      "raw_name": "Cholestérol total",
+      "value": 1.80,
+      "raw_unit": "g/L",
+      "ref_low": 1.40,
+      "ref_high": 2.20,
+      "ref_operator": "range",
+      "secondary_value": 4.65,
+      "secondary_unit": "mmol/L",
+      "section": "Lipides",
+      "confidence": 0.96,
+      "is_patient_value": true,
+      "prior_values": [{ "date": "2025-04-25", "value": 1.95 }]
+    },
+    {
+      "raw_name": "TSH",
+      "value": 2.10,
+      "raw_unit": "mUI/L",
+      "ref_low": 0.27,
+      "ref_high": 4.20,
+      "ref_operator": "range",
+      "secondary_value": null,
+      "secondary_unit": null,
+      "section": "Thyroïde",
+      "confidence": 0.95,
+      "is_patient_value": true,
+      "prior_values": []
+    }
+  ]
+}

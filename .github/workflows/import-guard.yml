@@ -1,0 +1,39 @@
+name: import-guard
+
+# Barrière CI du CHEMIN CRITIQUE — import de prise de sang.
+# Lance la suite déterministe `pnpm run test:import` (hors-ligne, sans API ni DB)
+# sur chaque push et chaque PR. DOIT être 100 % vert avant tout merge vers prod.
+#
+# Rendre ce check bloquant :
+#   GitHub → Settings → Branches → Branch protection rule sur `master` →
+#   "Require status checks to pass before merging" → cocher « import-guard / test-import ».
+# Vercel ne bloque pas nativement sur les tests : on s'appuie sur ce check requis
+# avant merge. (Alternative : préfixer la Build Command Vercel par
+#   `pnpm run test:import &&` — mais le check GitHub requis est l'option retenue.)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run import critical-path tests
+        run: pnpm run test:import

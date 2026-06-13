@@ -1,0 +1,3 @@
+# Garde du CHEMIN CRITIQUE import : lint-staged lance `pnpm run test:import`
+# uniquement si un fichier du pipeline est modifié (voir lint-staged.config.mjs).
+pnpm exec lint-staged

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { checkBloodPanelGate } from '@/lib/health/gating'
 import { validateBloodPanel, type BloodPanelImport } from '@/lib/health/blood-panel-parser'
 import { getMarkerStatus, toDbStatus } from '@/lib/health/marker-status'
+import { planMarkerMerge, markerCodeOf } from '@/lib/health/merge-panel'
 
 // Learning-loop payload (sous-étape F) — optional, best-effort logging.
 interface ExtractionMeta {
@@ -31,14 +32,6 @@ type ImportBody = Partial<BloodPanelImport> & {
   corrections?: Correction[]
 }
 
-// Égalité tolérante (arrondis d'affichage) pour détecter un conflit de valeur.
-function valuesDiffer(a: number, b: number): boolean {
-  if (a === b) return false
-  const scale = Math.max(Math.abs(a), Math.abs(b), 1)
-  return Math.abs(a - b) / scale >= 0.005
-}
-
-const markerCodeOf = (m: BloodPanelImport['markers'][number]) => m.markerCode || m.markerName
 
 // Saves a validated blood panel (markers already extracted & reviewed by the user).
 // Body: { panelDate, labName, markers: BloodMarkerData[], extractionMeta?, corrections? }
@@ -148,15 +141,10 @@ export async function POST(request: NextRequest) {
           (existingMarkers ?? []).map((em: any) => [em.marker_code, Number(em.value)]),
         )
 
-        const rows: ReturnType<typeof buildRow>[] = []
-        for (const m of p.markers) {
-          const code = markerCodeOf(m)
-          if (!existingByCode.has(code)) {
-            rows.push(buildRow(existing.id, m))
-          } else if (valuesDiffer(existingByCode.get(code)!, m.value)) {
-            conflicts.push({ date: p.panelDate, marker: m.markerName, existing: existingByCode.get(code)!, incoming: m.value })
-          }
-        }
+        // Décision pure (testable) : marqueurs à insérer + conflits, sans écrasement.
+        const plan = planMarkerMerge(existingByCode, p.markers)
+        const rows = plan.toInsert.map(m => buildRow(existing.id, m))
+        for (const c of plan.conflicts) conflicts.push({ date: p.panelDate, ...c })
 
         if (rows.length > 0) {
           const { error: mergeError } = await (supabase.from('blood_markers').insert(rows as any) as any)
