@@ -1,0 +1,55 @@
+{
+  "_note": "FIXTURE SYNTHÉTIQUE — aucune donnée réelle. Reproduit le BUG de fan-out : une date d'en-tête propre à une section (2024-08-23, HbA1c) fuit sur le cholestérol, dont la valeur du 2025-04-25 (1.95) est DUPLIQUÉE au 2024-08-23. Attendu après fix : cholestérol = 2 mesures (2026-03-02 + 2025-04-25) ; le 2024-08-23 ne contient que l'HbA1c.",
+  "metadata": {
+    "lab_name": "Laboratoire Synthétique",
+    "collection_date": "2026-03-02",
+    "report_date": "2026-03-03",
+    "patient_sex": "M",
+    "patient_age": 47
+  },
+  "markers": [
+    {
+      "raw_name": "Glycémie à jeun",
+      "value": 0.95, "raw_unit": "g/L",
+      "ref_low": null, "ref_high": null, "ref_operator": "range",
+      "secondary_value": null, "secondary_unit": null, "section": "Glucides",
+      "confidence": 0.98, "is_patient_value": true,
+      "prior_values": [{ "date": "2025-04-25", "value": 0.92 }]
+    },
+    {
+      "raw_name": "Créatinine",
+      "value": 9.0, "raw_unit": "mg/L",
+      "ref_low": null, "ref_high": null, "ref_operator": "range",
+      "secondary_value": null, "secondary_unit": null, "section": "Reins",
+      "confidence": 0.97, "is_patient_value": true,
+      "prior_values": [{ "date": "2025-04-25", "value": 8.5 }]
+    },
+    {
+      "raw_name": "Hémoglobine",
+      "value": 14.5, "raw_unit": "g/dL",
+      "ref_low": null, "ref_high": null, "ref_operator": "range",
+      "secondary_value": null, "secondary_unit": null, "section": "Hématologie",
+      "confidence": 0.96, "is_patient_value": true,
+      "prior_values": [{ "date": "2025-04-25", "value": 14.2 }]
+    },
+    {
+      "raw_name": "Cholestérol total",
+      "value": 1.80, "raw_unit": "g/L",
+      "ref_low": null, "ref_high": null, "ref_operator": "range",
+      "secondary_value": null, "secondary_unit": null, "section": "Lipides",
+      "confidence": 0.96, "is_patient_value": true,
+      "prior_values": [
+        { "date": "2025-04-25", "value": 1.95 },
+        { "date": "2024-08-23", "value": 1.95 }
+      ]
+    },
+    {
+      "raw_name": "HbA1c",
+      "value": 5.4, "raw_unit": "%",
+      "ref_low": null, "ref_high": null, "ref_operator": "range",
+      "secondary_value": null, "secondary_unit": null, "section": "Glucides",
+      "confidence": 0.97, "is_patient_value": true,
+      "prior_values": [{ "date": "2024-08-23", "value": 5.6 }]
+    }
+  ]
+}
