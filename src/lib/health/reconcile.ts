@@ -17,6 +17,13 @@ import {
 
 // ─── Schéma brut (sortie du modèle, sous-étape B) ────────────────────────────
 
+// Valeur d'antériorité : une colonne de droite gouvernée par un en-tête de DATE.
+// L'unité/intervalle ne sont pas réimprimés → hérités de la ligne du jour.
+export interface RawPriorValue {
+  date: string | null  // date gouvernante (en-tête), ISO si possible
+  value: number | null
+}
+
 export interface RawMarker {
   raw_name: string
   value: number | null
@@ -29,6 +36,8 @@ export interface RawMarker {
   section: string | null
   confidence: number
   is_patient_value: boolean
+  // Valeurs antérieures (colonnes d'antériorité) avec leur date gouvernante.
+  prior_values?: RawPriorValue[]
 }
 
 export interface RawExtraction {
@@ -43,6 +52,14 @@ export interface RawExtraction {
 }
 
 // ─── Marqueur réconcilié (consommé par l'UI / la sauvegarde) ─────────────────
+
+// Antériorité réconciliée : date ISO + valeur en unité canonique (+ valeur brute
+// telle qu'imprimée, pour le recoupement texte de l'auto-vérification).
+export interface PriorValue {
+  date: string
+  value: number
+  rawValue: number
+}
 
 export interface ReconciledMarker {
   markerCode: string
@@ -61,6 +78,8 @@ export interface ReconciledMarker {
   confidence: number
   converted: boolean // l'unité/valeur a été convertie depuis l'unité du labo
   needsReview: boolean // absent du référentiel
+  // Valeurs antérieures (dates distinctes), unité/intervalle hérités de ce marqueur.
+  priorValues: PriorValue[]
 }
 
 export interface ReconciledPanel {
@@ -86,6 +105,37 @@ function toIsoDate(s: string | null): string {
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
   const t = Date.parse(s)
   return Number.isFinite(t) ? new Date(t).toISOString().split('T')[0] : today
+}
+
+// Parse STRICT (renvoie null si invalide) — pour les dates d'antériorité, qui ne
+// doivent jamais retomber silencieusement sur « aujourd'hui ».
+function parseIsoStrict(s: string | null): string | null {
+  if (!s) return null
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+  const t = Date.parse(s)
+  return Number.isFinite(t) ? new Date(t).toISOString().split('T')[0] : null
+}
+
+// Réconcilie les valeurs d'antériorité : nombre normalisé + conversion vers
+// l'unité canonique (héritée de la ligne du jour via raw_unit). Ignore toute
+// entrée sans date valide ou sans valeur numérique.
+function buildPriorValues(
+  priors: RawPriorValue[] | undefined,
+  rawUnit: string | null,
+  ref: ReturnType<typeof matchMarker> | null,
+): PriorValue[] {
+  if (!Array.isArray(priors)) return []
+  const out: PriorValue[] = []
+  for (const p of priors) {
+    if (!p) continue
+    const v = normalizeNumber(p.value)
+    if (v === null) continue
+    const iso = parseIsoStrict(p.date)
+    if (!iso) continue
+    const value = ref ? (convertToCanonical(v, rawUnit, ref).value as number) : v
+    out.push({ date: iso, value, rawValue: v })
+  }
+  return out
 }
 
 /**
@@ -132,6 +182,7 @@ export function reconcileExtraction(raw: RawExtraction): ReconciledPanel {
         confidence: m.confidence ?? 0.5,
         converted: false,
         needsReview: true,
+        priorValues: buildPriorValues(m.prior_values, m.raw_unit, null),
       })
       continue
     }
@@ -174,6 +225,7 @@ export function reconcileExtraction(raw: RawExtraction): ReconciledPanel {
       confidence: m.confidence ?? 0.8,
       converted: conv.converted,
       needsReview: false,
+      priorValues: buildPriorValues(m.prior_values, m.raw_unit, ref),
     })
   }
 

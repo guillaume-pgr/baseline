@@ -3,7 +3,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { getAnthropicClient } from '@/lib/anthropic'
 import { checkBloodPanelGate } from '@/lib/health/gating'
-import { reconcileExtraction, type RawExtraction } from '@/lib/health/reconcile'
+import { reconcileExtraction, type RawExtraction, type ReconciledMarker } from '@/lib/health/reconcile'
 import { verifyMarkers } from '@/lib/health/verify'
 
 // Modèle d'extraction = le plus précis disponible (le chat reste sur Sonnet).
@@ -22,9 +22,17 @@ CE QUE TU EXTRAIS
 
 CE QUE TU IGNORES (mets is_patient_value=false ou n'extrais pas)
 - Les valeurs de CONTRÔLE ou de TÉMOIN (ex. "Temps de Quick du témoin", "témoin").
-- Les colonnes d'ANTÉRIORITÉS / résultats antérieurs (ne garde que le résultat courant).
 - Tout texte d'INTERPRÉTATION, de commentaire ou de pédagogie (paragraphes sur le diabète, la vitamine D, recommandations…), les en-têtes, pieds de page, mentions légales, coordonnées.
 - Les résultats QUALITATIFS non numériques ("Limpide", "Négatif", "Absence", "Jaune") — sauf si une valeur numérique est réellement donnée.
+
+ANTÉRIORITÉS (colonnes de valeurs antérieures) — IMPORTANT
+- Les comptes rendus français (Cofrac) affichent souvent, à DROITE de la valeur du jour, une ou plusieurs colonnes de résultats ANTÉRIEURS, sous un en-tête de DATE (ex. une date isolée "25/04/2025" au-dessus d'un groupe de lignes).
+- Pour CHAQUE ligne de marqueur, extrais TOUTES les valeurs présentes, pas seulement celle du jour. Mets les valeurs antérieures dans "prior_values", chacune avec sa DATE gouvernante.
+- Un en-tête de date gouverne la colonne d'antériorité JUSQU'À l'en-tête de date suivant. Il peut y avoir PLUSIEURS dates différentes dans le même document (ex. la plupart des marqueurs comparés au 25/04/2025, mais l'HbA1c au 23/08/2024) — n'en suppose donc PAS une seule globale.
+- La valeur du JOUR (value/raw_unit) correspond à la date de PRÉLÈVEMENT (collection_date), PAS à la date "produit le".
+- Une valeur d'antériorité n'a souvent NI unité NI intervalle de référence : laisse l'unité implicite (ne réinvente rien), ne mets dans prior_values que { date, value }.
+- Marqueur bi-unités (ex. cholestérol mmol/l ET g/l) : l'antériorité n'imprime souvent qu'UNE valeur (unité primaire) → n'exige pas les deux, mets la seule valeur présente.
+- Ne confonds PAS un intervalle de référence "(3.80 - 11.00)" avec une date ou une valeur d'antériorité. Si aucune antériorité n'est présente, prior_values=[].
 
 RÈGLES DE LECTURE
 - Bornes de référence, gère toutes les formes :
@@ -74,8 +82,20 @@ const TOOL: Anthropic.Tool = {
             section: { type: ['string', 'null'] },
             confidence: { type: 'number' },
             is_patient_value: { type: 'boolean' },
+            prior_values: {
+              type: 'array',
+              description: 'Valeurs antérieures (colonnes d\'antériorité) de CE marqueur, chacune avec sa date gouvernante. [] si aucune.',
+              items: {
+                type: 'object',
+                properties: {
+                  date: { type: ['string', 'null'], description: 'Date gouvernant la colonne d\'antériorité, ISO YYYY-MM-DD' },
+                  value: { type: ['number', 'null'] },
+                },
+                required: ['date', 'value'],
+              },
+            },
           },
-          required: ['raw_name', 'value', 'raw_unit', 'ref_low', 'ref_high', 'ref_operator', 'secondary_value', 'secondary_unit', 'section', 'confidence', 'is_patient_value'],
+          required: ['raw_name', 'value', 'raw_unit', 'ref_low', 'ref_high', 'ref_operator', 'secondary_value', 'secondary_unit', 'section', 'confidence', 'is_patient_value', 'prior_values'],
         },
       },
     },
@@ -216,20 +236,53 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ─── Auto-vérification (sous-étape D, zéro appel API) ────────────────────
+    // ─── Auto-vérification du bilan du JOUR (sous-étape D, zéro appel API) ────
     const { markers, globalConfidence } = verifyMarkers(panel.markers, pdfText)
 
-    console.log('[api/health/extract] réconcilié', markers.length, 'marqueurs',
-      `(${markers.filter(m => m.needsReview).length} à compléter,`,
-      `${markers.filter(m => m.verifyWarning).length} à vérifier, confiance ${globalConfidence})`)
+    // ─── Regroupement en bilans datés (antériorités) ─────────────────────────
+    // Chaque valeur d'antériorité (marqueur, date) devient un marqueur d'un bilan
+    // daté distinct, héritant unité/intervalle/explication du marqueur du jour.
+    const priorByDate = new Map<string, ReconciledMarker[]>()
+    for (const m of panel.markers) {
+      for (const pv of m.priorValues) {
+        if (pv.date === panel.panelDate) continue // même date que le bilan du jour
+        if (!priorByDate.has(pv.date)) priorByDate.set(pv.date, [])
+        priorByDate.get(pv.date)!.push({
+          ...m,
+          value: pv.value,
+          rawValue: pv.rawValue,
+          // L'antériorité est plus risquée → légère pénalité de confiance, et la
+          // colonne est marquée priorColumn dans verifyMarkers (seuil relevé).
+          confidence: Math.min(m.confidence, 0.9),
+          priorValues: [],
+        })
+      }
+    }
+
+    const priorPanels = [...priorByDate.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0])) // dates décroissantes
+      .map(([date, ms]) => ({
+        date,
+        isPrimary: false,
+        markers: verifyMarkers(ms, pdfText, { priorColumn: true }).markers,
+      }))
+
+    const panels = [
+      { date: panel.panelDate, isPrimary: true, markers },
+      ...priorPanels,
+    ]
+
+    console.log('[api/health/extract] réconcilié', markers.length, 'marqueurs du jour ;',
+      priorPanels.length, 'bilan(s) d\'antériorité',
+      `(${panels.map(p => `${p.date}:${p.markers.length}`).join(' · ')})`,
+      `confiance ${globalConfidence}`)
 
     return NextResponse.json({
-      panelDate: panel.panelDate,
       labName: panel.labName,
       patientSex: panel.patientSex,
       globalConfidence,
       model: MODEL_EXTRACTION,
-      markers,
+      panels,
     })
   } catch (error) {
     console.error('[api/health/extract] error:', error)

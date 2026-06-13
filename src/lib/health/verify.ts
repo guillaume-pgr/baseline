@@ -57,9 +57,16 @@ function nearlyEqual(a: number, b: number): boolean {
  * `pdfText` peut être vide (image ou PDF scanné) → la vérification texte est
  * alors ignorée (pas de faux avertissement).
  */
-export function verifyMarkers(markers: ReconciledMarker[], pdfText: string): VerifiedPanel {
+export function verifyMarkers(
+  markers: ReconciledMarker[],
+  pdfText: string,
+  opts?: { priorColumn?: boolean },
+): VerifiedPanel {
   const hasText = pdfText.trim().length > 40
   const textNumbers = hasText ? numbersInText(pdfText) : []
+  // La colonne d'antériorité est plus sujette aux erreurs d'alignement : on
+  // relève le seuil de confiance → davantage de valeurs routées vers la revue.
+  const lowConfThreshold = opts?.priorColumn ? 0.75 : LOW_CONFIDENCE
 
   const verified: VerifiedMarker[] = markers.map(m => {
     const reasons: string[] = []
@@ -92,7 +99,7 @@ export function verifyMarkers(markers: ReconciledMarker[], pdfText: string): Ver
     const verifyWarning = reasons.length > 0
     // "À vérifier" = fiabilité d'extraction. Le statut hors-norme (outOfRange)
     // en est volontairement EXCLU.
-    const extractionFlag = m.needsReview || verifyWarning || (m.confidence ?? 1) < LOW_CONFIDENCE
+    const extractionFlag = m.needsReview || verifyWarning || (m.confidence ?? 1) < lowConfThreshold
     return { ...m, verifyWarning, verifyReasons: reasons, extractionFlag, outOfRange: isOutOfRange(m) }
   })
 

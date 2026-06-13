@@ -40,6 +40,13 @@ interface ExtractedMarker {
   outOfRange?: boolean
 }
 
+// Un bilan daté renvoyé par /api/health/extract (jour + antériorités).
+interface ExtractedPanel {
+  date: string
+  isPrimary: boolean
+  markers: ExtractedMarker[]
+}
+
 // Editable representation — numeric fields held as strings while the user reviews.
 interface EditableMarker {
   id: string // stable key — pour diff fiable des corrections (sous-étape F)
@@ -56,6 +63,20 @@ interface EditableMarker {
   verifyReasons: string[]
   extractionFlag: boolean
   outOfRange: boolean
+}
+
+// Un bilan daté en cours de revue (un par date détectée).
+interface EditablePanel {
+  date: string
+  isPrimary: boolean
+  markers: EditableMarker[]
+}
+
+// Format DD/MM/YYYY pour l'affichage des dates de bilans.
+function formatDate(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 // Snapshot initial d'un marqueur (à l'extraction) pour repérer les corrections.
@@ -84,9 +105,9 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const [panelDate, setPanelDate] = useState('')
   const [labName, setLabName] = useState('')
-  const [markers, setMarkers] = useState<EditableMarker[]>([])
+  // Bilans datés (1 = mono-date classique ; N = jour + antériorités).
+  const [panels, setPanels] = useState<EditablePanel[]>([])
 
   const [stepIdx, setStepIdx] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -110,9 +131,8 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
     setIsExtracting(false)
     setIsSaving(false)
     setError('')
-    setPanelDate('')
     setLabName('')
-    setMarkers([])
+    setPanels([])
     setGlobalConfidence(null)
     setModel(null)
     originalRef.current = {}
@@ -152,13 +172,12 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Erreur lors de l\'analyse')
 
-      setPanelDate(result.panelDate || '')
       setLabName(result.labName || '')
       setGlobalConfidence(typeof result.globalConfidence === 'number' ? result.globalConfidence : null)
       setModel(result.model ?? null)
 
-      const mapped: EditableMarker[] = (result.markers || []).map((m: ExtractedMarker, i: number) => ({
-        id: `m${i}`,
+      const mapMarker = (m: ExtractedMarker, key: string): EditableMarker => ({
+        id: key,
         markerCode: m.markerCode ?? '',
         markerName: m.markerName ?? '',
         value: m.value != null ? String(m.value) : '',
@@ -172,12 +191,25 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
         verifyReasons: m.verifyReasons ?? [],
         extractionFlag: m.extractionFlag ?? ((m.needsReview ?? false) || (m.verifyWarning ?? false) || (m.confidence ?? 1) < LOW_CONFIDENCE),
         outOfRange: m.outOfRange ?? false,
+      })
+
+      // Nouveau format multi-bilans ; repli mono-bilan (rétro-compat).
+      const rawPanels: ExtractedPanel[] = Array.isArray(result.panels)
+        ? result.panels
+        : [{ date: result.panelDate || '', isPrimary: true, markers: result.markers || [] }]
+
+      const mappedPanels: EditablePanel[] = rawPanels.map((p, pi) => ({
+        date: p.date || '',
+        isPrimary: !!p.isPrimary,
+        markers: (p.markers || []).map((m, mi) => mapMarker(m, `p${pi}-m${mi}`)),
       }))
-      // Snapshot initial pour repérer les corrections de nom/unité.
+
+      // Snapshot initial (corrections nom/unité) — sur le bilan du jour uniquement.
+      const primary = mappedPanels.find(p => p.isPrimary) ?? mappedPanels[0]
       originalRef.current = Object.fromEntries(
-        mapped.map(m => [m.id, { markerName: m.markerName, value: m.value, unit: m.unit }]),
+        (primary?.markers ?? []).map(m => [m.id, { markerName: m.markerName, value: m.value, unit: m.unit }]),
       )
-      setMarkers(mapped)
+      setPanels(mappedPanels)
       setStep('review')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'analyse')
@@ -186,40 +218,54 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
     }
   }
 
-  const updateMarker = (idx: number, field: keyof EditableMarker, val: string) => {
-    setMarkers(prev => prev.map((m, i) => (i === idx ? { ...m, [field]: val } : m)))
+  const updateMarker = (panelIdx: number, idx: number, field: keyof EditableMarker, val: string) => {
+    setPanels(prev => prev.map((p, pi) =>
+      pi !== panelIdx ? p : { ...p, markers: p.markers.map((m, i) => (i === idx ? { ...m, [field]: val } : m)) },
+    ))
   }
 
-  const removeMarker = (idx: number) => {
-    setMarkers(prev => prev.filter((_, i) => i !== idx))
+  const removeMarker = (panelIdx: number, idx: number) => {
+    setPanels(prev => prev.map((p, pi) =>
+      pi !== panelIdx ? p : { ...p, markers: p.markers.filter((_, i) => i !== idx) },
+    ))
   }
+
+  const setPanelDate = (panelIdx: number, date: string) => {
+    setPanels(prev => prev.map((p, pi) => (pi === panelIdx ? { ...p, date } : p)))
+  }
+
+  const parseMarkers = (ms: EditableMarker[]) => ms
+    .map(m => ({
+      markerCode: m.markerCode.trim(),
+      markerName: m.markerName.trim(),
+      value: parseFloat(m.value.replace(',', '.')),
+      unit: m.unit.trim(),
+      refMin: m.refMin.trim() === '' ? null : parseFloat(m.refMin.replace(',', '.')),
+      refMax: m.refMax.trim() === '' ? null : parseFloat(m.refMax.replace(',', '.')),
+      organSystem: m.organSystem || 'autres',
+    }))
+    .filter(m => m.markerName && !isNaN(m.value))
 
   const handleSave = async () => {
     setError('')
 
-    const parsed = markers
-      .map(m => ({
-        markerCode: m.markerCode.trim(),
-        markerName: m.markerName.trim(),
-        value: parseFloat(m.value.replace(',', '.')),
-        unit: m.unit.trim(),
-        refMin: m.refMin.trim() === '' ? null : parseFloat(m.refMin.replace(',', '.')),
-        refMax: m.refMax.trim() === '' ? null : parseFloat(m.refMax.replace(',', '.')),
-        organSystem: m.organSystem || 'autres',
-      }))
-      .filter(m => m.markerName && !isNaN(m.value))
+    // Un bilan par date détectée ; on ignore un bilan sans date ou sans marqueur valide.
+    const builtPanels = panels
+      .map(p => ({ panelDate: p.date, markers: parseMarkers(p.markers) }))
+      .filter(p => p.panelDate && p.markers.length > 0)
 
-    if (parsed.length === 0) {
+    if (builtPanels.length === 0) {
       setError('Aucun marqueur valide à enregistrer.')
       return
     }
-    if (!panelDate) {
-      setError('Renseigne la date du bilan.')
+    if (panels.some(p => !p.date)) {
+      setError('Renseigne la date de chaque bilan.')
       return
     }
 
-    // Corrections (sous-étape F) : nom/unité modifiés par rapport au snapshot initial.
-    const corrections = markers.flatMap(m => {
+    // Corrections (sous-étape F) : nom/unité modifiés vs snapshot — bilan du jour.
+    const primary = panels.find(p => p.isPrimary) ?? panels[0]
+    const corrections = (primary?.markers ?? []).flatMap(m => {
       const orig = originalRef.current[m.id]
       if (!orig) return []
       const nameChanged = orig.markerName.trim() !== m.markerName.trim()
@@ -232,11 +278,12 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
         corrected_unit: unitChanged ? m.unit.trim() : null,
       }]
     })
+    const allMarkers = panels.flatMap(p => p.markers)
     const extractionMeta = {
       globalConfidence,
       model,
-      lowConfidenceCount: markers.filter(m => isExtractionFlag(m)).length,
-      unmatchedMarkers: markers.filter(m => m.needsReview).map(m => m.markerName.trim()),
+      lowConfidenceCount: allMarkers.filter(m => isExtractionFlag(m)).length,
+      unmatchedMarkers: allMarkers.filter(m => m.needsReview).map(m => m.markerName.trim()),
     }
 
     setIsSaving(true)
@@ -244,7 +291,7 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
       const res = await fetch('/api/health/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ panelDate, labName, markers: parsed, extractionMeta, corrections }),
+        body: JSON.stringify({ labName, panels: builtPanels, extractionMeta, corrections }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Erreur lors de l\'enregistrement')
@@ -363,83 +410,112 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
         )}
 
         {/* ─── Step: review ─────────────────────────────────────────── */}
-        {isReview && (
+        {isReview && (() => {
+          const GRID = '2.3fr 0.8fr 0.7fr 0.6fr 0.6fr 28px'
+          const allMarkers = panels.flatMap(p => p.markers)
+          const totalMarkers = allMarkers.length
+          const flaggedCount = allMarkers.filter(isExtractionFlag).length
+          return (
           <>
-            <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-              <label style={{ flex: 1, fontSize: 12, color: 'var(--color-ink-3)' }}>
-                Date du bilan
-                <input
-                  type="date"
-                  value={panelDate}
-                  onChange={e => setPanelDate(e.target.value)}
-                  style={{ ...inputStyle, marginTop: 4 }}
-                />
-              </label>
-              <label style={{ flex: 1, fontSize: 12, color: 'var(--color-ink-3)' }}>
-                Laboratoire
-                <input
-                  value={labName}
-                  onChange={e => setLabName(e.target.value)}
-                  style={{ ...inputStyle, marginTop: 4 }}
-                />
-              </label>
+            <label style={{ display: 'block', fontSize: 12, color: 'var(--color-ink-3)', marginBottom: 14 }}>
+              Laboratoire
+              <input
+                value={labName}
+                onChange={e => setLabName(e.target.value)}
+                style={{ ...inputStyle, marginTop: 4 }}
+              />
+            </label>
+
+            {/* Récapitulatif des bilans détectés (un par date) */}
+            <div style={{ padding: '10px 12px', marginBottom: 12, backgroundColor: 'var(--color-surface-2)', borderRadius: 8, fontSize: 12, color: 'var(--color-ink-2)' }}>
+              <strong>{panels.length} bilan{panels.length > 1 ? 's' : ''} détecté{panels.length > 1 ? 's' : ''}</strong>
+              {' — '}
+              {panels.map((p, i) => (
+                <span key={i}>{formatDate(p.date)} ({p.markers.length}){i < panels.length - 1 ? ' · ' : ''}</span>
+              ))}
             </div>
 
             {/* Bandeau de revue ciblée : seuls les marqueurs à vérifier sont mis en avant */}
-            {(() => {
-              const flaggedCount = markers.filter(isExtractionFlag).length
-              if (flaggedCount > 0) {
-                return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', marginBottom: 12, backgroundColor: 'var(--color-amber-soft)', borderRadius: 8, fontSize: 12, color: 'var(--color-ink-2)' }}>
-                    <IconAlertTriangle size={15} color="var(--color-amber)" style={{ flexShrink: 0 }} />
-                    {flaggedCount} valeur{flaggedCount > 1 ? 's' : ''} à vérifier (surlignée{flaggedCount > 1 ? 's' : ''} ci-dessous). Le reste a été lu avec une bonne confiance.
-                  </div>
-                )
-              }
-              return (
-                <div style={{ padding: '10px 12px', marginBottom: 12, backgroundColor: 'var(--color-lichen-soft)', borderRadius: 8, fontSize: 12, color: '#3d5c2d' }}>
-                  Tout a été lu avec une bonne confiance. Vérifie d’un coup d’œil et enregistre.
-                </div>
-              )
-            })()}
+            {flaggedCount > 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', marginBottom: 12, backgroundColor: 'var(--color-amber-soft)', borderRadius: 8, fontSize: 12, color: 'var(--color-ink-2)' }}>
+                <IconAlertTriangle size={15} color="var(--color-amber)" style={{ flexShrink: 0 }} />
+                {flaggedCount} valeur{flaggedCount > 1 ? 's' : ''} à vérifier (surlignée{flaggedCount > 1 ? 's' : ''} ci-dessous). Les antériorités à faible confiance sont systématiquement signalées.
+              </div>
+            ) : (
+              <div style={{ padding: '10px 12px', marginBottom: 12, backgroundColor: 'var(--color-lichen-soft)', borderRadius: 8, fontSize: 12, color: '#3d5c2d' }}>
+                Tout a été lu avec une bonne confiance. Vérifie d’un coup d’œil et enregistre.
+              </div>
+            )}
 
             <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16, border: '1px solid var(--color-line)', borderRadius: 8 }}>
-              <div style={{
-                display: 'grid', gridTemplateColumns: '2.3fr 0.8fr 0.7fr 0.6fr 0.6fr 28px',
-                gap: 8, padding: '8px 12px', position: 'sticky', top: 0,
-                backgroundColor: 'var(--color-surface)', borderBottom: '1px solid var(--color-line)',
-                fontSize: 10, fontWeight: 600, color: 'var(--color-ink-4)', textTransform: 'uppercase', letterSpacing: '0.04em',
-              }}>
-                <span>Marqueur</span><span>Valeur</span><span>Unité</span><span>Réf. min</span><span>Réf. max</span><span />
-              </div>
-              {markers.map((m, idx) => {
-                const flagged = isExtractionFlag(m)
-                return (
-                  <div key={idx} style={{
-                    display: 'grid', gridTemplateColumns: '2.3fr 0.8fr 0.7fr 0.6fr 0.6fr 28px',
-                    gap: 8, padding: '6px 12px', alignItems: 'center', borderBottom: '1px solid var(--color-line)',
-                    borderLeft: flagged ? '3px solid var(--color-amber)' : '3px solid transparent',
+              {panels.map((p, pi) => (
+                <div key={pi}>
+                  {/* En-tête de bilan daté (date éditable + nature) */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                    padding: '8px 12px', position: 'sticky', top: 0, zIndex: 1,
+                    backgroundColor: 'var(--color-surface-2)', borderBottom: '1px solid var(--color-line)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-                      {flagged && <IconAlertTriangle size={13} color="var(--color-amber)" style={{ flexShrink: 0 }} />}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <input
-                        value={m.markerName}
-                        onChange={e => updateMarker(idx, 'markerName', e.target.value)}
-                        style={flagged ? { ...inputCell, borderColor: 'var(--color-amber)' } : inputCell}
-                        title={flagged ? flagTooltip(m) : m.markerName}
+                        type="date"
+                        value={p.date}
+                        onChange={e => setPanelDate(pi, e.target.value)}
+                        style={{ ...inputCell, width: 'auto' }}
                       />
+                      <span style={{
+                        fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase',
+                        padding: '2px 8px', borderRadius: 999,
+                        backgroundColor: p.isPrimary ? 'var(--color-ink)' : 'var(--color-amber-soft)',
+                        color: p.isPrimary ? 'white' : 'var(--color-amber)',
+                      }}>
+                        {p.isPrimary ? 'Bilan du jour' : 'Antériorité'}
+                      </span>
                     </div>
-                    <input value={m.value} onChange={e => updateMarker(idx, 'value', e.target.value)} style={inputCell} inputMode="decimal" />
-                    <input value={m.unit} onChange={e => updateMarker(idx, 'unit', e.target.value)} style={inputCell} />
-                    <input value={m.refMin} onChange={e => updateMarker(idx, 'refMin', e.target.value)} style={inputCell} inputMode="decimal" />
-                    <input value={m.refMax} onChange={e => updateMarker(idx, 'refMax', e.target.value)} style={inputCell} inputMode="decimal" />
-                    <button onClick={() => removeMarker(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--color-ink-4)' }}>
-                      <IconTrash size={15} />
-                    </button>
+                    <span style={{ fontSize: 11, color: 'var(--color-ink-4)' }}>
+                      {p.markers.length} marqueur{p.markers.length > 1 ? 's' : ''}
+                    </span>
                   </div>
-                )
-              })}
-              {markers.length === 0 && (
+
+                  {/* En-tête de colonnes */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: GRID, gap: 8, padding: '6px 12px',
+                    backgroundColor: 'var(--color-surface)', borderBottom: '1px solid var(--color-line)',
+                    fontSize: 10, fontWeight: 600, color: 'var(--color-ink-4)', textTransform: 'uppercase', letterSpacing: '0.04em',
+                  }}>
+                    <span>Marqueur</span><span>Valeur</span><span>Unité</span><span>Réf. min</span><span>Réf. max</span><span />
+                  </div>
+
+                  {p.markers.map((m, idx) => {
+                    const flagged = isExtractionFlag(m)
+                    return (
+                      <div key={m.id} style={{
+                        display: 'grid', gridTemplateColumns: GRID,
+                        gap: 8, padding: '6px 12px', alignItems: 'center', borderBottom: '1px solid var(--color-line)',
+                        borderLeft: flagged ? '3px solid var(--color-amber)' : '3px solid transparent',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                          {flagged && <IconAlertTriangle size={13} color="var(--color-amber)" style={{ flexShrink: 0 }} />}
+                          <input
+                            value={m.markerName}
+                            onChange={e => updateMarker(pi, idx, 'markerName', e.target.value)}
+                            style={flagged ? { ...inputCell, borderColor: 'var(--color-amber)' } : inputCell}
+                            title={flagged ? flagTooltip(m) : m.markerName}
+                          />
+                        </div>
+                        <input value={m.value} onChange={e => updateMarker(pi, idx, 'value', e.target.value)} style={inputCell} inputMode="decimal" />
+                        <input value={m.unit} onChange={e => updateMarker(pi, idx, 'unit', e.target.value)} style={inputCell} />
+                        <input value={m.refMin} onChange={e => updateMarker(pi, idx, 'refMin', e.target.value)} style={inputCell} inputMode="decimal" />
+                        <input value={m.refMax} onChange={e => updateMarker(pi, idx, 'refMax', e.target.value)} style={inputCell} inputMode="decimal" />
+                        <button onClick={() => removeMarker(pi, idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--color-ink-4)' }}>
+                          <IconTrash size={15} />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+              {totalMarkers === 0 && (
                 <p style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--color-ink-4)' }}>
                   Aucun marqueur. Reviens en arrière et réessaie.
                 </p>
@@ -452,12 +528,15 @@ export default function ImportModal({ open, onClose, onSuccess }: ImportModalPro
               <button onClick={() => { setStep('select'); setError('') }} disabled={isSaving} style={btnSecondary}>
                 Retour
               </button>
-              <button onClick={handleSave} disabled={isSaving || markers.length === 0} style={btnPrimary(!isSaving && markers.length > 0)}>
-                {isSaving ? 'Enregistrement…' : `Enregistrer ${markers.length} marqueur${markers.length > 1 ? 's' : ''}`}
+              <button onClick={handleSave} disabled={isSaving || totalMarkers === 0} style={btnPrimary(!isSaving && totalMarkers > 0)}>
+                {isSaving
+                  ? 'Enregistrement…'
+                  : `Enregistrer ${panels.length} bilan${panels.length > 1 ? 's' : ''} · ${totalMarkers} marqueur${totalMarkers > 1 ? 's' : ''}`}
               </button>
             </div>
           </>
-        )}
+          )
+        })()}
       </div>
     </div>
   )
