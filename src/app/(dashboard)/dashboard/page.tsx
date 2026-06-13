@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { usePersonaData, usePersonaContext } from '@/lib/context/PersonaContext'
 import EmptyState from '@/components/EmptyState'
+import ImportModal from '@/components/ImportModal'
 import CanvasHead from '@/components/home/CanvasHead'
 import HeroStatement from '@/components/home/HeroStatement'
 import DomainsGrid from '@/components/home/DomainsGrid'
@@ -12,11 +14,19 @@ import MobileDashboard from '@/components/mobile/MobileDashboard'
 // ─── Desktop dashboard (≥md) — unchanged ─────────────────────────────────────
 function DesktopDashboard() {
   const data = usePersonaData()
-  const { switchDemo } = usePersonaContext()
+  const { switchDemo, refreshReal } = usePersonaContext()
+  const [importOpen, setImportOpen] = useState(false)
 
   if (!data) {
     return (
       <div style={{ padding: '32px 56px 80px' }}>
+        {/* L'import s'ouvre EN PLACE (pas de window.location → pas de remontage
+            du PersonaProvider → le mode réel n'est jamais réinitialisé en démo). */}
+        <ImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          onSuccess={refreshReal}
+        />
         <EmptyState
           icon="sparkles"
           iconColor="lichen"
@@ -25,7 +35,7 @@ function DesktopDashboard() {
           primaryAction={{
             label: 'Importer un bilan',
             icon: 'upload',
-            onClick: () => { window.location.href = '/bloodwork' },
+            onClick: () => setImportOpen(true),
           }}
           secondaryAction={{
             label: 'Voir le mode démo',
