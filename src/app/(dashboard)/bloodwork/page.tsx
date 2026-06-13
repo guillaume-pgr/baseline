@@ -195,17 +195,40 @@ function MarkerRowExhaustive({ m }: { m: BloodMarker }) {
 }
 
 // ─── Category card ───────────────────────────────────────────────────────────
-// Alt colors for multi-series: primary color + 3 softer biotech tones
+// Couleurs par marqueur (réutilisées par le sélecteur d'évolution).
 const MULTI_COLORS = ['#B5705A', '#7BA8B5', '#9CB380', '#9890B5']
 
+// Statut d'un point historique vs intervalle : zone optimale de la jauge (données
+// réelles) si dispo, sinon plage d'affichage du marqueur. Pour le tooltip.
+function pointStatus(m: BloodMarker, v: number): 'optimal' | 'warn' {
+  if (m.gauge) {
+    const { scaleMin, scaleMax, optimalStart, optimalEnd } = m.gauge
+    const span = (scaleMax - scaleMin) || 1
+    const frac = (v - scaleMin) / span
+    return frac >= optimalStart && frac <= optimalEnd ? 'optimal' : 'warn'
+  }
+  const [lo, hi] = m.range
+  return v >= lo && v <= hi ? 'optimal' : 'warn'
+}
+
 function CategoryCard({ cat, dates, exhaustive }: { cat: BloodCategory; dates: string[]; exhaustive?: boolean }) {
-  const chartSeries = cat.chartMarkerIds.map((markerId, i) => {
-    const m = cat.markers.find(x => x.id === markerId)!
-    const color = cat.chartMarkerIds.length > 1
-      ? (MULTI_COLORS[i] ?? cat.chartColor)
-      : cat.chartColor
-    return { label: m.name, values: Array.from(m.history), color }
-  })
+  // Sélecteur de marqueur (single-select). Défaut : 1er marqueur tracé du domaine
+  // (ex. Cholestérol total pour les lipides), sinon 1er marqueur de la catégorie.
+  const defaultId = cat.chartMarkerIds[0] ?? cat.markers[0]?.id ?? ''
+  const [selectedId, setSelectedId] = useState(defaultId)
+  const selected = cat.markers.find(m => m.id === selectedId) ?? cat.markers[0]
+  const selectedIdx = Math.max(0, cat.markers.findIndex(m => m.id === selected?.id))
+  const seriesColor = MULTI_COLORS[selectedIdx % MULTI_COLORS.length] ?? cat.chartColor
+
+  const chartSeries = selected
+    ? [{
+        label: selected.name,
+        values: Array.from(selected.history),
+        color: seriesColor,
+        unit: selected.unit,
+        statuses: Array.from(selected.history).map(v => pointStatus(selected, v)),
+      }]
+    : []
 
   return (
     <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: 16, padding: '24px 28px', marginBottom: 16 }}>
@@ -239,9 +262,30 @@ function CategoryCard({ cat, dates, exhaustive }: { cat: BloodCategory; dates: s
       {/* Inline evolution chart — only in category (non-exhaustive) view */}
       {!exhaustive && (
         <div style={{ marginTop: 24 }}>
+          {/* Sélecteur de marqueur — chips single-select (style des filtres) */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+            {cat.markers.map(m => {
+              const isActive = m.id === selected?.id
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setSelectedId(m.id)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                    border: '1px solid', transition: 'all 0.15s',
+                    borderColor: isActive ? 'var(--color-ink)' : 'var(--color-line-2)',
+                    backgroundColor: isActive ? 'var(--color-ink)' : 'transparent',
+                    color: isActive ? 'var(--color-bg)' : 'var(--color-ink-2)',
+                  }}
+                >
+                  {m.name}
+                </button>
+              )
+            })}
+          </div>
           <EvolutionMultiLineChart
-            id={cat.id}
-            title={cat.chartTitle}
+            id={`${cat.id}-${selected?.id ?? 'none'}`}
+            title={selected ? `${selected.name} — évolution` : cat.chartTitle}
             series={chartSeries}
             dates={dates}
           />
